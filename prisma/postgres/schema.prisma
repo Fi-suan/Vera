@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id
+  name           String
+  email          String?  @unique
+  phone          String?  @unique
+  passwordHash   String?
+  role           String
+  tradePointId   String?
+  iikoEmployeeId String?
+  createdAt      DateTime @default(now())
+
+  tradePoint        TradePoint?       @relation(fields: [tradePointId], references: [id])
+  createdRequests   WriteOffRequest[] @relation("created_requests")
+  reviewedRequests  WriteOffRequest[] @relation("reviewed_requests")
+  deductionRequests WriteOffRequest[] @relation("deduction_employee")
+  events            RequestEvent[]
+}
+
+model TradePoint {
+  id               String   @id
+  name             String
+  address          String
+  iikoDepartmentId String
+  createdAt        DateTime @default(now())
+
+  users    User[]
+  requests WriteOffRequest[]
+}
+
+model Product {
+  id            String   @id
+  name          String
+  category      String
+  unit          String
+  costPrice     Float
+  iikoProductId String
+  createdAt     DateTime @default(now())
+
+  requests WriteOffRequest[]
+}
+
+model WriteOffRequest {
+  id                    String    @id @default(cuid())
+  doc                   String    @unique
+  createdByUserId       String
+  tradePointId          String?
+  productId             String?
+  productNameFallback   String?
+  quantity              Float?
+  unit                  String?
+  reason                String?
+  deductionType         String?
+  deductionEmployeeId   String?
+  comment               String?
+  photoUrl              String?
+  voiceTranscript       String?
+  aiExtractedFieldsJson String    @default("{}")
+  aiGeneratedComment    String?
+  aiConfidenceScore     Float?
+  missingFieldsJson     String    @default("[]")
+  status                String    @default("draft")
+  reviewedByUserId      String?
+  reviewedAt            DateTime?
+  rejectionReason       String?
+  iikoSyncStatus        String    @default("idle")
+  iikoDocumentId        String?
+  costEstimate          Float     @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  createdBy         User           @relation("created_requests", fields: [createdByUserId], references: [id])
+  reviewedBy        User?          @relation("reviewed_requests", fields: [reviewedByUserId], references: [id])
+  deductionEmployee User?          @relation("deduction_employee", fields: [deductionEmployeeId], references: [id])
+  tradePoint        TradePoint?    @relation(fields: [tradePointId], references: [id])
+  product           Product?       @relation(fields: [productId], references: [id])
+  events            RequestEvent[]
+  syncLogs          IikoSyncLog[]
+
+  @@index([createdByUserId])
+  @@index([status])
+  @@index([tradePointId])
+  @@index([createdAt])
+}
+
+model RequestEvent {
+  id           String   @id @default(cuid())
+  requestId    String
+  actorUserId  String?
+  eventType    String
+  fromStatus   String?
+  toStatus     String?
+  metadataJson String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  request WriteOffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actor   User?           @relation(fields: [actorUserId], references: [id])
+
+  @@index([requestId])
+}
+
+model IikoSyncLog {
+  id             String   @id @default(cuid())
+  requestId      String
+  status         String
+  payloadJson    String
+  responseJson   String?
+  errorMessage   String?
+  iikoDocumentId String?
+  createdAt      DateTime @default(now())
+
+  request WriteOffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([status])
+}
