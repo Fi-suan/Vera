@@ -13,6 +13,7 @@ import {
   CATEGORY_COLOR, type WriteOff,
 } from "./store";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { translate as T } from "./i18n";
 
 const NAV: NavItem[] = [
   { id: "overview", label: "Overview", Icon: ChartLineUp },
@@ -61,34 +62,34 @@ export function Manager({ onExit }: { onExit: () => void }) {
 function Overview({ onQueue }: { onQueue: () => void }) {
   const a = useAnalytics();
   const kpis = [
-    { l: "Pending review", v: a.pending.length, Icon: Clock },
-    { l: "Loss this week", v: a.weekLoss, Icon: TrendUp, money: true },
-    { l: "Approval rate", v: a.approvalRate, Icon: CheckCircle, suffix: "%" },
-    { l: "Sync issues", v: a.syncIssues, Icon: Warning },
+    { l: T("pendingReview"), v: a.pending.length, Icon: Clock },
+    { l: T("lossWeek"), v: a.weekLoss, Icon: TrendUp, money: true },
+    { l: T("approvalRate"), v: a.approvalRate, Icon: CheckCircle, suffix: "%" },
+    { l: T("syncIssues"), v: a.syncIssues, Icon: Warning },
   ];
   const attention = a.pending.slice().sort((x, y) => y.loss - x.loss);
   return (
-    <div className="px-6 md:px-9">
-      <PageHead title="Overview" subtitle="Loss, approvals and sync health across all four points." action={a.pending.length > 0 ? <Button onClick={onQueue}><Tray size={18} /> Review {a.pending.length}</Button> : undefined} />
+    <div className="px-5">
+      <PageHead title={T("overview")} subtitle={T("overviewSub")} action={a.pending.length > 0 ? <Button onClick={onQueue}><Tray size={18} /> {T("review")} {a.pending.length}</Button> : undefined} />
 
-      <div className="mt-7 grid grid-cols-2 lg:grid-cols-4 gap-y-6 border-t border-[#ecd5cc] pt-6 lg:divide-x lg:divide-[#ecd5cc]">
+      <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-6 border-t border-[#ecd5cc] pt-6">
         {kpis.map((k) => (
-          <div key={k.l} className="px-6">
+          <div key={k.l} className="px-4">
             <div className="flex items-center justify-between"><span className="text-[13px] font-semibold text-[var(--vera-rose-gray)]">{k.l}</span><k.Icon size={18} className="text-[var(--vera-rose-gray)]" /></div>
-            <div className="mt-2 text-[clamp(24px,3vw,32px)] font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Fredoka" }}>
+            <div className="mt-2 text-[clamp(24px,3vw,32px)] font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>
               {k.money ? <AnimatedNumber value={k.v} format={(n) => tenge(n)} /> : <><AnimatedNumber value={k.v} />{k.suffix ?? ""}</>}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-7 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 border-t border-[#ecd5cc] pt-6">
-          <div className="flex items-center justify-between mb-2"><h3 className="text-[17px]">Loss trend · 7 days</h3><Tag color="#f2555f">{tengeShort(a.weekLoss)}</Tag></div>
+      <div className="mt-7 grid gap-5">
+        <div className="border-t border-[#ecd5cc] pt-6">
+          <div className="flex items-center justify-between mb-2"><h3 className="text-[17px]">{T("lossTrend")}</h3><Tag color="#f2555f">{tengeShort(a.weekLoss)}</Tag></div>
           <LossTrend data={a.days} />
         </div>
         <div className="border-t border-[#ecd5cc] pt-6">
-          <h3 className="text-[17px] mb-3">By trade point</h3>
+          <h3 className="text-[17px] mb-3">{T("byPoint")}</h3>
           <PointDonut data={a.byPoint} />
           <div className="mt-3 space-y-1.5">
             {a.byPoint.map((p, i) => (
@@ -101,14 +102,14 @@ function Overview({ onQueue }: { onQueue: () => void }) {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-5">
         <div className="border-t border-[#ecd5cc] pt-6">
-          <h3 className="text-[17px] mb-2">Loss by category</h3>
+          <h3 className="text-[17px] mb-2">{T("byCategory")}</h3>
           <CategoryBars data={a.byCategory} />
           <div className="mt-2 flex flex-wrap gap-2">{a.byCategory.map((c) => <Tag key={c.cat} color={CATEGORY_COLOR[c.cat]}>{c.cat}</Tag>)}</div>
         </div>
         <div className="border-t border-[#ecd5cc] pt-6">
-          <h3 className="text-[17px] mb-3">Needs attention</h3>
+          <h3 className="text-[17px] mb-3">{T("needsAttention")}</h3>
           <div className="divide-y divide-[#f0d8cf]">
             {attention.slice(0, 4).map((r) => {
               const e = empById(r.employeeId);
@@ -120,7 +121,7 @@ function Overview({ onQueue }: { onQueue: () => void }) {
                 </div>
               );
             })}
-            {attention.length === 0 && <p className="py-6 text-[14px] text-[var(--vera-rose-gray)]">Queue is clear — nothing to review.</p>}
+            {attention.length === 0 && <p className="py-6 text-[14px] text-[var(--vera-rose-gray)]">{T("queueClearShort")}</p>}
           </div>
         </div>
       </div>
@@ -132,12 +133,12 @@ function Queue({ onOpen }: { onOpen: (id: string) => void }) {
   const { requests } = useStore();
   const pending = requests.filter((r) => r.status === "pending");
   return (
-    <div className="px-6 md:px-9">
-      <PageHead title="Review queue" subtitle="Understand each request in five seconds, then decide." action={pending.length > 0 ? <StatusLabel tone="pending" pulse>{pending.length} waiting</StatusLabel> : undefined} />
+    <div className="px-5">
+      <PageHead title={T("reviewQueueTitle")} subtitle={T("reviewQueueSub")} action={pending.length > 0 ? <StatusLabel tone="pending" pulse>{pending.length} {T("waiting")}</StatusLabel> : undefined} />
       {pending.length === 0 ? (
-        <EmptyBlock label="Queue is clear. New voice write-offs land here instantly." />
+        <EmptyBlock label={T("queueEmpty")} />
       ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4">
           {pending.map((r, i) => {
             const e = empById(r.employeeId);
             return (
@@ -168,8 +169,8 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
   });
 
   return (
-    <div className="px-6 md:px-9">
-      <PageHead title="All records" subtitle={`${requests.length} write-offs across every point.`} />
+    <div className="px-5">
+      <PageHead title={T("recordsTitle")} subtitle={`${requests.length} write-offs across every point.`} />
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px] max-w-md">
           <MagnifyingGlass size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--vera-rose-gray)]" />
@@ -182,7 +183,7 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
       </div>
 
-      <div className="mt-5 hidden md:block">
+      <div className="hidden">
         <div className="grid grid-cols-[1.4fr_1fr_1.1fr_0.8fr_1fr_0.9fr_36px] gap-3 px-4 pb-2 text-[12px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">
           <span>Product</span><span>Employee</span><span>Point</span><span>Status</span><span>Iiko</span><span className="text-right">Loss</span><span />
         </div>
@@ -203,7 +204,7 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
           })}
         </div>
       </div>
-      <div className="mt-5 md:hidden divide-y divide-[#f0d8cf]">
+      <div className="mt-5 divide-y divide-[#f0d8cf]">
         {rows.map((r) => {
           const e = empById(r.employeeId);
           return (
@@ -221,26 +222,35 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
 
 function Team() {
   const { requests } = useStore();
+  const team = Object.values(
+    requests.reduce((acc, r) => {
+      const e = empById(r.employeeId);
+      acc[e.id] ??= { id: e.id, name: e.name, hue: e.hue, total: 0, pending: 0, loss: 0 };
+      acc[e.id].total += 1;
+      if (r.status === "pending") acc[e.id].pending += 1;
+      if (r.status !== "rejected") acc[e.id].loss += r.loss;
+      return acc;
+    }, {} as Record<string, { id: string; name: string; hue: number; total: number; pending: number; loss: number }>)
+  ).sort((a, b) => b.loss - a.loss);
   return (
-    <div className="px-6 md:px-9">
-      <PageHead title="Team" subtitle="Who's reporting what, and how much loss it represents." />
-      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {EMPLOYEES.map((e, i) => {
-          const mine = requests.filter((r) => r.employeeId === e.id);
-          const loss = mine.filter((r) => r.status !== "rejected").reduce((s, r) => s + r.loss, 0);
-          const pending = mine.filter((r) => r.status === "pending").length;
-          return (
+    <div className="px-5">
+      <PageHead title={T("teamTitle")} subtitle="Who's reporting what, and how much loss it represents." />
+      {team.length === 0 ? (
+        <EmptyBlock label="No team activity yet. People appear here once they submit write-offs." />
+      ) : (
+        <div className="mt-6 grid gap-4">
+          {team.map((e, i) => (
             <motion.div key={e.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="rounded-[26px] bg-white/65 p-5">
-              <div className="flex items-center gap-3"><Avatar name={e.name} hue={e.hue} size={48} /><div className="min-w-0"><div className="font-bold text-[var(--vera-cocoa)] truncate">{e.name}</div><div className="text-[13px] text-[var(--vera-rose-gray)]">{e.role} · {e.point}</div></div></div>
+              <div className="flex items-center gap-3"><Avatar name={e.name} hue={e.hue} size={48} /><div className="min-w-0"><div className="font-bold text-[var(--vera-cocoa)] truncate">{e.name}</div><div className="text-[13px] text-[var(--vera-rose-gray)]">{e.total} write-off{e.total === 1 ? "" : "s"}</div></div></div>
               <div className="mt-4 grid grid-cols-3 divide-x divide-[#f0d8cf] text-center">
-                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Fredoka" }}>{mine.length}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Total</div></div>
-                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Fredoka" }}>{pending}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Pending</div></div>
-                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)] text-[14px]">{tengeShort(loss)}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Loss</div></div>
+                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>{e.total}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Total</div></div>
+                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>{e.pending}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Pending</div></div>
+                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)] text-[14px]">{tengeShort(e.loss)}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Loss</div></div>
               </div>
             </motion.div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -254,8 +264,8 @@ function SyncCenter() {
     { key: "synced", label: "Synced", tone: "synced" },
   ] as const;
   return (
-    <div className="px-6 md:px-9">
-      <PageHead title="Iiko sync" subtitle="Approved write-offs flow into Iiko automatically." />
+    <div className="px-5">
+      <PageHead title={T("iikoTitle")} subtitle="Approved write-offs flow into Iiko automatically." />
       {groups.map((g) => {
         const items = approved.filter((r) => r.sync === g.key);
         if (!items.length) return null;

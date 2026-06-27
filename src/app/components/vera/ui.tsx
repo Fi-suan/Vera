@@ -118,7 +118,7 @@ export function Avatar({ name, hue = 348, size = 36 }: { name: string; hue?: num
         width: size,
         height: size,
         fontSize: size * 0.38,
-        fontFamily: "Fredoka",
+        fontFamily: "Montserrat",
         background: `linear-gradient(140deg, hsl(${hue} 72% 62%), hsl(${hue + 18} 64% 50%))`,
         boxShadow: `0 8px 16px -8px hsl(${hue} 70% 50% / 0.7)`,
       }}
@@ -141,10 +141,10 @@ export function VeraMark({ size = 34, light = false }: { size?: number; light?: 
   return (
     <div className="inline-flex items-center gap-2.5">
       <div className="relative grid place-items-center rounded-[30%] bg-[var(--vera-strawberry)] shadow-[0_8px_18px_-8px_rgba(242,85,95,0.8)]" style={{ width: size, height: size }}>
-        <span className="font-bold text-[var(--vera-accent-cream)]" style={{ fontFamily: "Fredoka", fontSize: size * 0.5 }}>V</span>
+        <span className="font-bold text-[var(--vera-accent-cream)]" style={{ fontFamily: "Montserrat", fontSize: size * 0.5 }}>V</span>
         <span className="absolute -top-1 -right-1 rounded-full bg-[var(--vera-cream)]" style={{ width: size * 0.32, height: size * 0.32 }} />
       </div>
-      <span className="font-bold tracking-tight" style={{ fontFamily: "Fredoka", fontSize: size * 0.62, color: light ? "var(--vera-cream)" : "var(--vera-berry)" }}>VERA</span>
+      <span className="font-bold tracking-tight" style={{ fontFamily: "Montserrat", fontSize: size * 0.62, color: light ? "var(--vera-cream)" : "var(--vera-berry)" }}>VERA</span>
     </div>
   );
 }

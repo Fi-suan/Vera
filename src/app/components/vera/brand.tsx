@@ -43,7 +43,7 @@ export function VeraMark({ size = 34, biteColor = "var(--vera-cream)" }: { size?
         boxShadow: "0 10px 22px -10px rgba(184,50,66,0.7)",
       }}
     >
-      <span style={{ fontFamily: "Fredoka", fontWeight: 700, fontSize: h * 0.5, color: "var(--vera-accent-cream)", lineHeight: 1 }}>
+      <span style={{ fontFamily: "Montserrat", fontWeight: 700, fontSize: h * 0.5, color: "var(--vera-accent-cream)", lineHeight: 1 }}>
         VERA
       </span>
       <span className="absolute rounded-full" style={{ width: bite, height: bite, top: -bite * 0.4, right: -bite * 0.16, background: biteColor }} />
@@ -84,12 +84,14 @@ export function Sticker({
     <div
       className={`relative ${className}`}
       style={{
-        background: coral ? "var(--vera-strawberry)" : "var(--vera-white-cream)",
-        border: `2.5px solid ${coral ? "var(--vera-berry)" : "#f0d8cf"}`,
-        borderRadius: 34,
+        background: coral
+          ? "linear-gradient(155deg, #ec5158 0%, var(--vera-strawberry) 45%, var(--vera-berry) 100%)"
+          : "var(--vera-white-cream)",
+        border: coral ? "1px solid rgba(168,44,57,0.6)" : "1px solid #e7ddd6",
+        borderRadius: 28,
         boxShadow: coral
-          ? "0 26px 50px -24px rgba(184,50,66,0.6)"
-          : "0 22px 44px -28px rgba(184,50,66,0.3)",
+          ? "0 30px 60px -28px rgba(168,44,57,0.65), inset 0 1px 0 rgba(255,255,255,0.22)"
+          : "0 20px 44px -30px rgba(40,30,30,0.35), inset 0 1px 0 rgba(255,255,255,0.7)",
       }}
     >
       {bite && (

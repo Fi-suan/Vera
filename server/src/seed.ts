@@ -46,6 +46,12 @@ async function createEvent(prisma: PrismaClient, requestId: string, eventType: s
 }
 
 export async function seedDemo(prisma: PrismaClient) {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DESTRUCTIVE_SEED !== "true") {
+    throw new Error(
+      "Refusing to run the destructive demo seed in production. Set ALLOW_DESTRUCTIVE_SEED=true to override (this wipes all data).",
+    );
+  }
+
   await prisma.iikoSyncLog.deleteMany();
   await prisma.requestEvent.deleteMany();
   await prisma.writeOffRequest.deleteMany();

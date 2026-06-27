@@ -1,7 +1,10 @@
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 import multer from "multer";
 import { randomUUID } from "node:crypto";
+import { unlink } from "node:fs/promises";
 import path from "node:path";
 import type { PrismaClient, User } from "@prisma/client";
 import { getPrisma } from "./db";
@@ -142,8 +145,18 @@ export function createApp(options: AppOptions = {}) {
   const app = express();
 
   app.set("trust proxy", 1);
+  app.use(helmet());
   app.use(cors(getCorsOptions()));
   app.use(express.json({ limit: "2mb" }));
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: { error: "rate_limited", message: "Too many authentication attempts, please try again later" },
+  });
+  app.use(["/api/auth/login", "/api/auth/register"], authLimiter);
   app.use("/uploads", express.static(path.resolve(process.cwd(), "server/uploads")));
 
   app.use(async (req: Request, _res: Response, next: NextFunction) => {
@@ -247,8 +260,9 @@ export function createApp(options: AppOptions = {}) {
     }
   });
 
-  app.get("/api/bootstrap", async (_req, res, next) => {
+  app.get("/api/bootstrap", async (req, res, next) => {
     try {
+      requireAuth(req);
       const [users, tradePoints, products] = await Promise.all([
         prisma.user.findMany({ orderBy: { name: "asc" } }),
         prisma.tradePoint.findMany({ orderBy: { name: "asc" } }),
@@ -272,6 +286,8 @@ export function createApp(options: AppOptions = {}) {
       res.json(await transcribeAudio(req.file));
     } catch (error) {
       next(error);
+    } finally {
+      if (req.file) await unlink(req.file.path).catch(() => undefined);
     }
   });
 
@@ -513,7 +529,12 @@ export function createApp(options: AppOptions = {}) {
   app.get("/api/write-offs/:id", async (req, res, next) => {
     try {
       const user = requireAuth(req);
-      res.json(serializeRequest(await getFullRequest(prisma, routeId(req)), user));
+      const fullRequest = await getFullRequest(prisma, routeId(req));
+      const isReviewer = REVIEWER_ROLES.includes(user.role as (typeof REVIEWER_ROLES)[number]);
+      if (fullRequest.createdByUserId !== user.id && !isReviewer) {
+        throw new HttpError(403, "Only the request creator or a reviewer can view this write-off");
+      }
+      res.json(serializeRequest(fullRequest, user));
     } catch (error) {
       next(error);
     }

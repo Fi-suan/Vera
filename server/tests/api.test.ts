@@ -216,6 +216,32 @@ describe("VERA backend MVP", () => {
       .expect(400);
   });
 
+  it("does not let an employee read another employee's write-off", async () => {
+    await request(app)
+      .get("/api/write-offs/wo-synced-croissants")
+      .set(employee)
+      .expect(403);
+  });
+
+  it("lets the owner read their own write-off", async () => {
+    await request(app)
+      .get("/api/write-offs/wo-failed-caesar")
+      .set(employee)
+      .expect(200);
+  });
+
+  it("lets a reviewer read any write-off", async () => {
+    await request(app)
+      .get("/api/write-offs/wo-synced-croissants")
+      .set(reviewer)
+      .expect(200);
+  });
+
+  it("requires authentication for bootstrap data", async () => {
+    await request(app).get("/api/bootstrap").expect(401);
+    await request(app).get("/api/bootstrap").set(employee).expect(200);
+  });
+
   it("filters reviewer queue by status and trade point", async () => {
     const res = await request(app)
       .get("/api/reviewer/write-offs")

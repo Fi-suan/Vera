@@ -120,21 +120,21 @@
 }
 
 :root {
-  /* VERA strawberry-cream system */
-  --vera-strawberry: #f2555f;
-  --vera-raspberry: #d94655;
-  --vera-berry: #b83242;
-  --vera-cream: #fff8f1;
-  --vera-blush: #ffeae7;
-  --vera-rose-surface: #ffd8d6;
-  --vera-white-cream: #fffcf8;
-  --vera-cocoa: #2b2023;
-  --vera-brown-gray: #6b5559;
-  --vera-rose-gray: #9a747a;
-  --vera-accent-cream: #fff1e8;
-  --vera-peach: #ffb3a8;
-  --vera-mint: #68c7a2;
-  --vera-amber: #f6b95e;
+  /* VERA — professional warm-neutral with a single confident red accent */
+  --vera-strawberry: #ff5a60;   /* brighter, modern coral accent */
+  --vera-raspberry: #f0454e;
+  --vera-berry: #d12f3c;
+  --vera-cream: #f6f4f2;        /* app background — clean warm light */
+  --vera-blush: #f0ebe7;        /* subtle neutral surface */
+  --vera-rose-surface: #e6ded8; /* muted divider/surface */
+  --vera-white-cream: #ffffff;  /* crisp white card / elevated surface */
+  --vera-cocoa: #16130f;        /* near-black ink text */
+  --vera-brown-gray: #6b635c;   /* secondary text */
+  --vera-rose-gray: #9a918a;    /* tertiary text */
+  --vera-accent-cream: #fff6f3; /* text on red */
+  --vera-peach: #f0c7bd;        /* soft accent (atmosphere) */
+  --vera-mint: #2fa37a;         /* success */
+  --vera-amber: #d68a2e;        /* warning */
 }
 
 @theme inline {
@@ -152,8 +152,8 @@
   --color-peach: var(--vera-peach);
   --color-mint: var(--vera-mint);
   --color-amber: var(--vera-amber);
-  --font-display: "Fredoka", "Nunito Sans", sans-serif;
-  --font-sans: "Nunito Sans", system-ui, sans-serif;
+  --font-display: "Montserrat", system-ui, sans-serif;
+  --font-sans: "Montserrat", system-ui, sans-serif;
 }
 
 @layer base {
@@ -163,12 +163,31 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Nunito Sans", system-ui, sans-serif;
+    font-family: "Montserrat", system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.005em;
   }
 
   h1, h2, h3, h4 {
-    font-family: "Fredoka", "Nunito Sans", sans-serif;
+    font-family: "Montserrat", system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.015em;
     color: var(--vera-cocoa);
+  }
+  /* casual, lighter feel — soften the heaviest weights app-wide */
+  .font-bold { font-weight: 600 !important; }
+  .font-semibold { font-weight: 500 !important; }
+
+  /* Premium film grain — fixed, pointer-events-none, no scroll repaint */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   /**

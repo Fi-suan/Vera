@@ -26,14 +26,6 @@ export function Intro({ onDone }: { onDone: () => void }) {
           className="relative"
         >
           <VeraLogo width={230} float className="max-w-[68vw]" />
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
-            className="absolute -bottom-2 -left-4"
-          >
-            <Petals size={52} />
-          </motion.div>
         </motion.div>
 
         <motion.p

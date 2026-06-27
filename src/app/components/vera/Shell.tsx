@@ -2,14 +2,24 @@ import { motion } from "motion/react";
 import { type ReactNode } from "react";
 import type { IconType } from "./icons";
 import { SignOut, Bell } from "./icons";
-import { Atmosphere, Avatar } from "./ui";
+import { Avatar } from "./ui";
 import { VeraLogo } from "./brand";
+import { translate as T } from "./i18n";
 
 export type NavItem = { id: string; label: string; Icon: IconType };
 
+/* nav id -> i18n key, so labels translate regardless of caller */
+const NAV_KEY: Record<string, string> = {
+  home: "home", new: "capture", requests: "requests", products: "products", profile: "profile",
+  overview: "overview", queue: "queue", records: "records", employees: "team", sync: "iiko",
+};
+function signedInName(): string {
+  try { return (localStorage.getItem("vera.user") || "").trim(); } catch { return ""; }
+}
+
 /* ------------------------------------------------------------------ */
-/* Mobile-first shell: airy content, a floating glass dock, slim rail. */
-/* No heavy chrome boxes — navigation floats over the content.         */
+/* App architecture: a coral header band carrying identity, with the   */
+/* page content in a cream sheet that overlaps it. Full-width tab bar.  */
 /* ------------------------------------------------------------------ */
 
 export function Shell({
@@ -31,68 +41,67 @@ export function Shell({
   onExit: () => void;
   children: ReactNode;
 }) {
+  const who = signedInName() || user;
+  const first = (who || "").trim().split(" ")[0] || "—";
+  const roleText = roleLabel === "Manager" ? T("managerRole") : T("employeeRole");
   return (
-    <div className="relative w-full min-h-[100dvh] bg-[var(--vera-cream)] text-[var(--vera-cocoa)] flex">
-      <Atmosphere subtle />
-
-      {/* Desktop slim rail */}
-      <aside className="relative z-10 hidden md:flex w-[88px] hover:w-[230px] transition-[width] duration-300 group shrink-0 flex-col items-stretch px-4 py-7 overflow-hidden">
-        <div className="px-1.5 mb-8">
-          <VeraLogo width={92} />
-        </div>
-        <nav className="flex flex-col gap-1">
-          {nav.map(({ id, label, Icon }) => {
-            const on = active === id;
-            return (
-              <button key={id} onClick={() => onNav(id)} className="relative flex items-center gap-3 rounded-2xl px-3 py-3 text-left">
-                {on && (
-                  <motion.span layoutId="rail-pill" className="absolute inset-0 rounded-2xl bg-white shadow-[0_12px_28px_-18px_rgba(184,50,66,0.5)]" transition={{ type: "spring", stiffness: 380, damping: 32 }} />
-                )}
-                <Icon size={22} className="relative z-10 shrink-0" style={{ color: on ? "var(--vera-strawberry)" : "var(--vera-rose-gray)" }} />
-                <span className="relative z-10 font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: on ? "var(--vera-cocoa)" : "var(--vera-brown-gray)" }}>{label}</span>
+    <div className="relative w-full min-h-[100dvh] bg-[var(--vera-cocoa)] flex justify-center">
+      <div className="relative w-full max-w-[460px] flex flex-col min-h-[100dvh]">
+        {/* coral identity band */}
+        <div className="relative shrink-0 overflow-hidden px-5 pt-6 pb-12" style={{ background: "linear-gradient(160deg, #ec5158, var(--vera-strawberry) 55%, var(--vera-berry))" }}>
+          <motion.div
+            className="absolute -top-20 -right-12 size-60 rounded-full blur-[60px]"
+            style={{ background: "rgba(255,255,255,0.22)" }}
+            animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0.85, 0.5] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <div className="relative flex items-center justify-between">
+            <div className="rounded-2xl bg-white/95 px-2.5 py-1.5 shadow-md">
+              <VeraLogo width={66} />
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button onClick={onExit} className="grid place-items-center size-9 rounded-full bg-white/18 text-[var(--vera-accent-cream)] active:scale-95 transition-transform" aria-label="Sign out">
+                <SignOut size={18} />
               </button>
-            );
-          })}
-        </nav>
-        <button onClick={onExit} className="mt-auto flex items-center gap-3 rounded-2xl px-3 py-3 text-[var(--vera-rose-gray)] hover:text-[var(--vera-berry)]">
-          <SignOut size={22} className="shrink-0" />
-          <span className="font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Switch role</span>
-        </button>
-      </aside>
-
-      <div className="relative z-10 flex-1 min-w-0 flex flex-col">
-        {/* Top bar — context, not a box */}
-        <header className="flex items-center justify-between px-6 md:px-9 pt-6">
-          <div className="md:hidden"><VeraLogo width={78} /></div>
-          <div className="hidden md:block text-[13px] font-semibold text-[var(--vera-rose-gray)]">{roleLabel} workspace</div>
-          <div className="flex items-center gap-3">
-            <button className="relative grid place-items-center size-9 rounded-full bg-white/60 text-[var(--vera-cocoa)] hover:bg-white">
-              <Bell size={18} />
-              <span className="absolute top-2 right-2 size-1.5 rounded-full bg-[var(--vera-strawberry)]" />
-            </button>
-            <Avatar name={user} hue={hue} size={34} />
+              <button className="relative grid place-items-center size-9 rounded-full bg-white/18 text-[var(--vera-accent-cream)] active:scale-95 transition-transform" aria-label="Notifications">
+                <Bell size={18} />
+                <span className="absolute top-2 right-2 size-1.5 rounded-full bg-white" />
+              </button>
+              <Avatar name={who || "U"} hue={hue} size={36} />
+            </div>
           </div>
-        </header>
 
-        <main className="flex-1 overflow-y-auto pb-32 md:pb-12">{children}</main>
+          <div className="relative mt-5 flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-white/18 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--vera-accent-cream)]">
+              {roleText}
+            </span>
+          </div>
+          <h2 className="relative mt-2 text-[clamp(22px,6vw,28px)] font-bold leading-tight tracking-tight text-[var(--vera-accent-cream)]">
+            {T("hi")}, {first}
+          </h2>
+        </div>
 
-        {/* Mobile floating glass dock */}
-        <div className="md:hidden fixed bottom-0 inset-x-0 z-30 px-5 pb-5 pointer-events-none">
+        {/* content sheet */}
+        <main className="relative flex-1 -mt-6 rounded-t-[28px] bg-[var(--vera-cream)] text-[var(--vera-cocoa)] overflow-y-auto pb-24 shadow-[0_-10px_30px_-20px_rgba(0,0,0,0.25)]">
+          {children}
+        </main>
+
+        {/* full-width bottom bar */}
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-30 w-full max-w-[460px] px-3 pb-3 pointer-events-none">
           <motion.nav
-            initial={{ y: 80, opacity: 0 }}
+            initial={{ y: 70, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 220, damping: 26 }}
-            className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[26px] px-3 py-2.5 bg-[rgba(255,252,248,0.72)] backdrop-blur-xl border border-white/70 shadow-[0_18px_44px_-18px_rgba(184,50,66,0.45),inset_0_1px_0_rgba(255,255,255,0.6)]"
+            transition={{ type: "spring", stiffness: 240, damping: 26 }}
+            style={{ willChange: "transform", transform: "translateZ(0)" }}
+            className="pointer-events-auto flex w-full items-stretch rounded-[22px] bg-[var(--vera-white-cream)]/95 backdrop-blur-md border border-[#ece4dd] shadow-[0_16px_36px_-16px_rgba(29,26,25,0.4)] px-1.5 py-1.5"
           >
             {nav.map(({ id, label, Icon }) => {
               const on = active === id;
               return (
-                <button key={id} onClick={() => onNav(id)} className="relative flex flex-1 flex-col items-center gap-1 py-1.5">
-                  {on && <motion.span layoutId="dock-pill" className="absolute -top-0.5 inset-x-3 h-9 rounded-2xl bg-[var(--vera-strawberry)]/12" transition={{ type: "spring", stiffness: 380, damping: 30 }} />}
-                  <motion.span animate={{ y: on ? -1 : 0, scale: on ? 1.08 : 1 }} transition={{ type: "spring", stiffness: 400, damping: 22 }} className="relative">
-                    <Icon size={23} style={{ color: on ? "var(--vera-strawberry)" : "var(--vera-rose-gray)" }} />
-                  </motion.span>
-                  <span className="relative text-[10px] font-bold tracking-wide" style={{ color: on ? "var(--vera-strawberry)" : "var(--vera-rose-gray)" }}>{label}</span>
+                <button key={id} onClick={() => onNav(id)} className="relative flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-2xl">
+                  {on && <motion.span layoutId="navActive" transition={{ type: "spring", stiffness: 380, damping: 32 }} className="absolute inset-0 rounded-2xl bg-[var(--vera-strawberry)]/12" />}
+                  <Icon size={21} weight={on ? "fill" : "regular"} style={{ color: on ? "var(--vera-strawberry)" : "var(--vera-rose-gray)" }} />
+                  <span className="relative text-[10.5px] font-semibold leading-none" style={{ color: on ? "var(--vera-strawberry)" : "var(--vera-rose-gray)" }}>{NAV_KEY[id] ? T(NAV_KEY[id]) : label}</span>
                 </button>
               );
             })}
@@ -103,20 +112,20 @@ export function Shell({
   );
 }
 
-/* Page header — large, left-aligned, editorial. No box. */
+/* Section header used inside the content sheet */
 export function PageHead({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 px-6 md:px-9 pt-5 md:pt-7">
+    <div className="flex items-end justify-between gap-3 px-5 pt-6">
       <div className="min-w-0">
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ease: [0.16, 1, 0.3, 1] }}
-          className="text-[clamp(28px,7vw,40px)] leading-[1.03] tracking-tight"
+          className="text-[clamp(22px,6vw,28px)] leading-[1.1] tracking-tight"
         >
           {title}
         </motion.h1>
-        {subtitle && <p className="mt-1.5 text-[14px] text-[var(--vera-brown-gray)] max-w-[48ch]">{subtitle}</p>}
+        {subtitle && <p className="mt-1.5 text-[13.5px] text-[var(--vera-brown-gray)]">{subtitle}</p>}
       </div>
       {action}
     </div>
