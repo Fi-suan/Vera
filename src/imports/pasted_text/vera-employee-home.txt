@@ -1,0 +1,604 @@
+Create a high-fidelity Figma design concept for a mobile-first web app called **VERA**.
+
+Important: this is **not a landing page** and not a generic mobile app mockup. It is a **mobile web app / PWA-style operational interface** embedded in a website, designed for frontline employees and managers to create, review, and control product write-off requests. The app should feel like a modern business tool: fast, soft, readable, trustworthy, and slightly playful — but never childish.
+
+## Product context
+
+VERA is a voice-first write-off system for trade points. Employees can report damaged or unusable products by voice. AI turns their speech into structured write-off data, asks follow-up questions if information is missing, generates a clean professional comment, attaches photo proof, and sends the request for review. Managers/reviewers can see all write-off requests in a clean smart table/card system, approve or reject them, and see Iiko sync status.
+
+Core flow:
+Employee speaks → AI extracts data → missing fields are clarified → photo proof is attached → request is submitted → reviewer checks → approved request syncs to Iiko.
+
+## Brand direction
+
+Use the provided VERA logo concept as the visual reference:
+
+* Soft rounded horizontal badge
+* Strawberry-red / raspberry palette
+* Creamy text
+* Slight “bitten” corner detail
+* Soft floral/chocolate-like feeling
+* Digitalized 2D style, not heavy 3D clay
+* Friendly, warm, modern, readable
+
+The app should feel like the logo became a full interface system.
+
+## Anti-reference
+
+Avoid old enterprise software aesthetics:
+
+* no 1C-style dense tables
+* no gray corporate clutter
+* no outdated admin dashboard look
+* no tiny unreadable fields
+* no harsh borders everywhere
+* no heavy Excel-like tables
+* no generic SaaS purple/blue gradient
+* no “AI slop” cards with meaningless glowing blobs
+* no fake futuristic cyberpunk
+* no overused glassmorphism everywhere
+* no random decorative 3D objects
+
+The interface should feel like a new generation business app: soft, operational, tactile, calm, fast, and clear.
+
+## Visual style
+
+Design style:
+
+* 2D / semi-flat digital style
+* soft rounded geometry
+* subtle depth only where useful
+* very soft shadows, not heavy neumorphism
+* smooth surfaces
+* clean hierarchy
+* generous spacing
+* readable cards
+* warm, modern, slightly playful details
+* business-grade usability
+
+The UI should feel warm and human, but still precise and professional.
+
+Think:
+
+* modern PWA
+* Linear-level clarity
+* iiko but much softer and more modern
+* Notion/Arc-like simplicity
+* gentle food-tech warmth
+* strawberry cream interface
+* operational tool, not toy
+
+## Color palette
+
+Use a soft strawberry-red palette.
+
+Primary:
+
+* Strawberry Red: #F2555F
+* Soft Raspberry: #D94655
+* Deep Berry: #B83242
+
+Backgrounds:
+
+* Warm Cream: #FFF8F1
+* Blush Surface: #FFEAE7
+* Soft Rose Surface: #FFD8D6
+* White Cream: #FFFCF8
+
+Text:
+
+* Dark Cocoa: #2B2023
+* Soft Brown Gray: #6B5559
+* Muted Rose Gray: #9A747A
+
+Accent:
+
+* Cream: #FFF1E8
+* Peach: #FFB3A8
+* Fresh Mint for success only: #68C7A2
+* Soft Amber for warning only: #F6B95E
+
+Do not overuse green/blue. The app identity should stay strawberry-red and cream.
+
+## Typography
+
+Use a clean rounded sans-serif:
+
+* Inter Rounded, SF Pro Rounded, Nunito Sans, or similar
+* Large readable titles
+* Medium-weight labels
+* Comfortable body text
+* No overly childish font
+* No sharp corporate typography
+
+Text should feel friendly but reliable.
+
+## Layout requirements
+
+Design for mobile web first:
+
+* Frame size: 390 × 844 or 393 × 852
+* Safe mobile spacing
+* Bottom navigation or compact top navigation
+* Thumb-friendly controls
+* Large primary buttons
+* Inputs should be easy to tap
+* Cards should be readable at a glance
+* Avoid desktop-like density on mobile
+
+Also create one wider responsive frame for reviewer/manager view:
+
+* Tablet / desktop web app frame: 1200 × 800
+* This should show smart write-off queue/table in a modern readable way
+
+## Motion and interaction style
+
+Add notes for soft animations and transitions throughout the design:
+
+* Screen transitions: soft slide + fade, 220–320ms
+* Cards appear with gentle upward motion
+* Voice recording has a soft pulsing strawberry waveform
+* AI extraction fields fill in one by one
+* Missing field prompts appear as soft chips/cards
+* Submit button has gentle press feedback
+* Approval action has a calm success animation
+* Iiko sync status changes with a smooth progress-to-check transition
+* No aggressive bouncy animations
+* No childish confetti
+* Motion should feel premium, calm, and operational
+
+## Main screens to design
+
+Create the following high-fidelity screens.
+
+### 1. Employee Home
+
+Purpose: make the worker’s job faster.
+
+Layout:
+
+* Top: VERA logo / wordmark, current trade point, small profile avatar
+* Greeting: “Good morning, Aigerim”
+* Main action card: “Create write-off by voice”
+* Large microphone button
+* Secondary actions:
+
+  * Manual request
+  * My requests
+  * Scan / add photo
+* Small status summary:
+
+  * Pending: 3
+  * Approved today: 8
+  * Rejected: 1
+
+Visual feeling:
+
+* Calm, friendly, not overloaded
+* The voice button is the hero
+* Use soft strawberry card background
+* Cream text and subtle petal-shaped accent
+
+### 2. Voice Write-Off Screen
+
+Purpose: employee speaks naturally.
+
+Elements:
+
+* Large microphone orb/button
+* Soft animated waveform area
+* Live transcript card
+* Example helper text:
+  “Say what happened, product, quantity, trade point, and deduction type.”
+* Primary action:
+  “Finish recording”
+* Secondary:
+  “Cancel”
+
+Transcript example:
+“Write off 3 cutlets. They fell on the floor during order assembly. Aktau Mall point. Without deduction.”
+
+Visual:
+
+* Background should be calm and uncluttered
+* Microphone area should feel tactile and modern
+* Use animated waveform notes in Figma comments
+
+### 3. AI Extraction / Structured Request Preview
+
+Purpose: AI turns speech into clean structured data.
+
+Show extracted fields as soft cards:
+
+* Product: Cutlets
+* Quantity: 3 pcs
+* Trade point: Aktau Mall
+* Reason: Fell on the floor
+* Deduction type: Without deduction
+* Comment:
+  “3 cutlets fell on the floor during order assembly and cannot be reused according to sanitary requirements.”
+
+Also show:
+
+* Original transcript collapsed below
+* AI confidence indicator, but subtle
+* Button: “Looks correct”
+* Button: “Edit details”
+
+Important:
+This screen must not feel like a chatbot. It should feel like AI filled a form intelligently.
+
+### 4. Missing Information Screen
+
+Purpose: when employee did not say enough info.
+
+Example:
+AI says:
+“Almost ready. I need 2 more details.”
+
+Missing fields:
+
+* Quantity
+* Deduction type
+
+Use big friendly chips:
+Quantity:
+
+* 1
+* 2
+* 3
+* Custom
+
+Deduction type:
+
+* Without deduction
+* With employee deduction
+
+Button:
+“Continue”
+
+Visual:
+
+* Do not make a chat interface
+* Use card-based clarification
+* Make it faster than typing
+
+### 5. Photo Proof Screen
+
+Purpose: attach evidence.
+
+Elements:
+
+* Upload/take photo area
+* Photo preview card
+* Checklist:
+
+  * Product visible
+  * Damage visible
+  * Request matches photo
+* Button:
+  “Attach photo”
+* Button after attached:
+  “Continue to review”
+
+Visual:
+
+* Soft camera card
+* Clean empty state
+* Warm strawberry accent
+* Make it feel practical, not decorative
+
+### 6. Final Submit Screen
+
+Purpose: employee confirms before sending.
+
+Show compact summary:
+
+* Product
+* Quantity
+* Reason
+* Trade point
+* Deduction
+* Generated comment
+* Photo proof thumbnail
+
+Status:
+“Ready to send for review”
+
+Primary button:
+“Submit for approval”
+
+Secondary:
+“Edit request”
+
+After submit:
+Show a soft success state:
+“Request sent”
+“Your manager will review it shortly.”
+
+### 7. My Requests
+
+Purpose: employee sees status.
+
+Use mobile cards, not a table.
+
+Each card:
+
+* Status pill: Pending / Approved / Rejected / Synced
+* Product + quantity
+* Trade point
+* Time
+* Small photo thumbnail
+* Short reason
+* Reviewer comment if rejected
+
+Example:
+Pending
+3 cutlets · Aktau Mall
+Fell on floor · Without deduction
+Photo attached
+
+Visual:
+
+* Very readable
+* Status colors soft, not harsh
+* Cards should feel calm and clear
+
+### 8. Reviewer Queue — Mobile
+
+Purpose: manager quickly reviews requests.
+
+Cards:
+
+* Employee name
+* Product
+* Quantity
+* Trade point
+* Reason
+* AI summary
+* Risk / attention indicator
+* Photo thumbnail
+* Buttons: Approve / Review
+
+Do not make it too dense. Reviewer should understand each request in 5 seconds.
+
+### 9. Reviewer Detail Screen
+
+Purpose: approve or reject.
+
+Sections:
+
+* Photo proof large preview
+* Structured request fields
+* AI generated comment
+* Original transcript
+* Employee info
+* Deduction type
+* Iiko sync readiness
+* Buttons:
+
+  * Approve
+  * Reject
+
+If reject:
+
+* Show soft bottom sheet:
+  “Reason for rejection”
+  Options:
+
+  * Photo unclear
+  * Wrong product
+  * Missing information
+  * Other
+    Text area
+
+### 10. Manager Desktop / Tablet Smart Table
+
+Purpose: employer visibility.
+
+Create a modern business dashboard/table, not old enterprise software.
+
+Layout:
+
+* Left sidebar or top nav
+* Page title: “Write-off Queue”
+* Summary cards:
+
+  * Pending review
+  * Approved today
+  * Total loss estimate
+  * Iiko sync issues
+* Smart table columns:
+
+  * Status
+  * Time
+  * Trade point
+  * Employee
+  * Product
+  * Quantity
+  * Reason
+  * Deduction
+  * AI summary
+  * Iiko status
+  * Action
+
+Table style:
+
+* Soft rows
+* Rounded row containers
+* Comfortable spacing
+* Status pills
+* Photo thumbnail on hover or side preview
+* No Excel look
+* No dense 1C look
+* Make it feel like a modern command center
+
+### 11. Iiko Sync Status Screen / Component
+
+Purpose: show backend integration without making it boring.
+
+States:
+
+* Ready to sync
+* Syncing
+* Synced
+* Sync failed
+
+Show:
+
+* Write-off document ID
+* Product
+* Quantity
+* Trade point
+* Sync timestamp
+* Retry button if failed
+
+Use calm technical design:
+
+* Small integration card
+* Clear status
+* Soft progress indicator
+
+## Components to create
+
+Create a small design system inside Figma:
+
+Buttons:
+
+* Primary strawberry button
+* Secondary cream button
+* Ghost button
+* Destructive reject button
+
+Inputs:
+
+* Rounded text input
+* Select field
+* Quantity stepper
+* Comment textarea
+* Search field
+
+Cards:
+
+* Voice action card
+* Request summary card
+* Status card
+* Photo proof card
+* AI extracted field card
+
+Badges:
+
+* Pending
+* Approved
+* Rejected
+* Synced
+* Sync failed
+* With deduction
+* Without deduction
+
+Navigation:
+
+* Bottom nav for mobile:
+
+  * Home
+  * New
+  * Requests
+  * Profile
+* Desktop nav:
+
+  * Queue
+  * Analytics
+  * Employees
+  * Iiko Sync
+
+Special components:
+
+* Voice waveform
+* Microphone button
+* AI extraction progress
+* Missing fields chips
+* Iiko sync indicator
+* Request timeline
+
+## Microcopy tone
+
+Tone should be:
+
+* clear
+* warm
+* operational
+* not overly cute
+* not corporate-boring
+
+Examples:
+
+* “Tell VERA what happened”
+* “I found most details”
+* “Two details are missing”
+* “Attach photo proof”
+* “Ready for review”
+* “Sent to manager”
+* “Synced to Iiko”
+* “Photo is unclear”
+* “Check before approval”
+
+Avoid:
+
+* “Magic AI”
+* “Supercharge your workflow”
+* “Revolutionary”
+* “Your intelligent companion”
+* generic AI marketing phrases
+
+## AI behavior in UI
+
+Make AI feel like a quiet assistant, not the whole product.
+
+AI should:
+
+* extract fields
+* clean the comment
+* ask missing questions
+* flag uncertainty
+* help the reviewer read faster
+
+AI should not:
+
+* approve requests automatically
+* dominate the interface
+* look like a chatbot
+* create futuristic clutter
+
+## Visual details
+
+Use the VERA brand shape language:
+
+* rounded wide rectangles
+* soft bite-shaped cutouts as subtle decorative motif
+* small petal-like accents, very minimal
+* strawberry cream surfaces
+* dark cocoa text
+* warm shadows
+* rounded status pills
+* soft, readable cards
+
+Use subtle decorative elements only in empty states or hero cards. The operational screens should stay clean.
+
+## Output expectations
+
+Create a polished Figma file with:
+
+1. mobile employee flow screens
+2. mobile reviewer flow screens
+3. desktop/tablet manager queue screen
+4. Iiko sync component
+5. core design system components
+6. color styles
+7. typography styles
+8. spacing system
+9. motion notes for important transitions
+
+The final design should look like a real modern business web app, not a concept poster. It should be beautiful, but more importantly, it should be usable by busy employees in real trade points.
+
+The key product feeling:
+“Employee speaks. VERA structures. Manager verifies. Iiko syncs.”
