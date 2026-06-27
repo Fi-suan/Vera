@@ -37,15 +37,21 @@ function assertImage(file: UploadedFile) {
   }
 }
 
+export function getLocalUploadRoot() {
+  const configuredDir = getConfig().STORAGE_LOCAL_DIR;
+  return configuredDir ? path.resolve(configuredDir) : path.resolve(process.cwd(), "server/uploads");
+}
+
 class LocalStorageAdapter implements StorageAdapter {
   name = "local" as const;
 
   async saveProofPhoto(file: UploadedFile) {
     assertImage(file);
-    const dir = path.resolve(process.cwd(), "server/uploads/proofs");
+    const uploadRoot = getLocalUploadRoot();
+    const dir = path.resolve(uploadRoot, "proofs");
     await mkdir(dir, { recursive: true });
     const key = `proofs/${Date.now()}-${file.filename}${safeExtension(file)}`;
-    const target = path.resolve(process.cwd(), "server/uploads", key);
+    const target = path.resolve(uploadRoot, key);
     await rename(file.path, target);
     const publicBaseUrl = getConfig().STORAGE_LOCAL_PUBLIC_BASE_URL?.replace(/\/$/, "");
     return {

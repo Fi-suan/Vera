@@ -40,8 +40,11 @@ Local storage is acceptable only for a short demo on a platform with a persisten
 ```bash
 STORAGE_ADAPTER=local
 ACCEPT_LOCAL_STORAGE_IN_PRODUCTION=true
+STORAGE_LOCAL_DIR=/data/uploads
 STORAGE_LOCAL_PUBLIC_BASE_URL=https://your-backend.example
 ```
+
+If the frontend and backend are served from the same domain, `STORAGE_LOCAL_PUBLIC_BASE_URL` can be empty. Uploaded proof URLs will be returned as relative `/uploads/...` paths.
 
 Gemini extraction/transcription mode:
 
@@ -96,6 +99,50 @@ docker build -t vera-backend .
 ```
 
 Then run the container with the production env vars above. Run migrations as a release/predeploy command before exposing the service.
+
+## Render Blueprint
+
+`render.yaml` is included for a fast public prototype:
+
+- Docker service serving both `/api/*` and the built Vite app.
+- External PostgreSQL via `DATABASE_URL`.
+- `preDeployCommand` runs PostgreSQL migrations and idempotent seed.
+- `AI_PROVIDER=gemini`.
+- `IIKO_ADAPTER=mock`.
+- `VITE_VERA_API_URL` is intentionally omitted so the frontend uses same-origin `/api`.
+
+After creating the Render service from the blueprint, fill the secret env vars in the Render dashboard:
+
+```bash
+DATABASE_URL=postgresql://...
+GEMINI_API_KEY=...
+```
+
+Render can generate `JWT_SECRET` from the blueprint. If you manually configure the service instead, set a fresh long value.
+
+For proof photos, the default blueprint uses local container storage, which is enough for a quick demo but may be lost on rebuilds. For a sturdier public stand, choose one of these:
+
+```bash
+# Render persistent disk
+STORAGE_ADAPTER=local
+ACCEPT_LOCAL_STORAGE_IN_PRODUCTION=true
+STORAGE_LOCAL_DIR=/data/uploads
+STORAGE_LOCAL_PUBLIC_BASE_URL=
+```
+
+Mount the disk at `/data/uploads`.
+
+Or use R2/S3:
+
+```bash
+STORAGE_ADAPTER=s3
+S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+S3_REGION=auto
+S3_BUCKET=vera-proof-photos
+S3_ACCESS_KEY_ID=...
+S3_SECRET_ACCESS_KEY=...
+S3_PUBLIC_BASE_URL=https://uploads.example.com
+```
 
 ## SQLite Local Demo
 

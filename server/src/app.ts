@@ -29,7 +29,7 @@ import {
 import { syncToIiko, testIikoConnection } from "./iiko";
 import { createOpenApiSpec } from "./openapi";
 import { getCorsOptions } from "./config";
-import { saveProofPhoto } from "./storage";
+import { getLocalUploadRoot, saveProofPhoto } from "./storage";
 
 declare global {
   namespace Express {
@@ -172,7 +172,7 @@ export function createApp(options: AppOptions = {}) {
     message: { error: "rate_limited", message: "Too many authentication attempts, please try again later" },
   });
   app.use(["/api/auth/login", "/api/auth/register"], authLimiter);
-  app.use("/uploads", express.static(path.resolve(process.cwd(), "server/uploads")));
+  app.use("/uploads", express.static(getLocalUploadRoot()));
 
   app.use(async (req: Request, _res: Response, next: NextFunction) => {
     try {

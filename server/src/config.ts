@@ -19,6 +19,7 @@ const envSchema = z.object({
   ALLOW_DEMO_HEADER: z.enum(["true", "false"]).default("false"),
   STORAGE_ADAPTER: z.enum(["local", "s3"]).default("local"),
   ACCEPT_LOCAL_STORAGE_IN_PRODUCTION: z.enum(["true", "false"]).default("false"),
+  STORAGE_LOCAL_DIR: optionalString,
   STORAGE_LOCAL_PUBLIC_BASE_URL: optionalString,
   S3_ENDPOINT: optionalUrl,
   S3_REGION: z.string().default("auto"),
