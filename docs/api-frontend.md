@@ -3,7 +3,7 @@
 Base URL:
 
 ```txt
-${VITE_API_URL}
+${VITE_VERA_API_URL}/api
 ```
 
 For local development:
@@ -11,6 +11,8 @@ For local development:
 ```txt
 http://localhost:4000/api
 ```
+
+For production same-origin deployment, leave `VITE_VERA_API_URL` empty and the client will call `/api`.
 
 All protected requests use:
 

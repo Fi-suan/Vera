@@ -1,9 +1,9 @@
 # VERA Deploy Notes
 
-VERA is deployed as two services:
+Default hackathon deployment is one Node service:
 
-- frontend: static Vite build
-- backend: Node/Express API
+- frontend: built Vite assets served from `dist`
+- backend: Node/Express API under `/api`
 
 For local backend development we keep SQLite because it is fast and does not require extra services. For shared public testing, use PostgreSQL.
 
@@ -17,10 +17,10 @@ PORT=4000
 DATABASE_URL=postgresql://vera:password@host:5432/vera?schema=public
 JWT_SECRET=<long random secret, 32+ chars>
 JWT_EXPIRES_IN=7d
-CORS_ORIGINS=https://your-frontend.example
+CORS_ORIGINS=https://your-app.example
 ALLOW_DEMO_HEADER=false
 STORAGE_ADAPTER=s3
-AI_PROVIDER=mock
+AI_PROVIDER=gemini
 IIKO_ADAPTER=mock
 ```
 
@@ -71,23 +71,28 @@ Build/prestart commands for a backend service:
 
 ```bash
 npm ci
+npm run build
 npm run server:pg:generate
 npm run server:pg:migrate:deploy
 npm start
 ```
 
-Seed demo data after the first migration:
+Seed demo reference data after the first migration. This is idempotent and does not delete tester-created write-offs:
 
 ```bash
 DATABASE_URL='postgresql://vera:password@host:5432/vera?schema=public' npm run server:pg:seed
 ```
 
+For a local clean reset only:
+
+```bash
+npm run server:seed:reset
+```
+
 Docker build for PostgreSQL:
 
 ```bash
-docker build \
-  --build-arg PRISMA_SCHEMA=prisma/postgres/schema.prisma \
-  -t vera-backend .
+docker build -t vera-backend .
 ```
 
 Then run the container with the production env vars above. Run migrations as a release/predeploy command before exposing the service.
@@ -131,8 +136,10 @@ docs/api-frontend.md
 The rewritten frontend should call the backend through:
 
 ```bash
-VITE_API_URL=https://your-backend.example/api
+VITE_VERA_API_URL=
 ```
+
+Leave it empty in production same-origin mode. For cross-origin local development use `VITE_VERA_API_URL=http://localhost:4000`.
 
 All protected calls must include:
 
@@ -166,4 +173,17 @@ curl -X POST https://your-backend.example/api/ai/test-provider \
 
 curl -X POST https://your-backend.example/api/iiko/test-connection \
   -H "Authorization: Bearer <token>"
+```
+
+Run the full product flow verification:
+
+```bash
+VERA_API_URL=https://your-app.example/api npm run server:verify-demo
+```
+
+Current public prototype stance:
+
+```txt
+Gemini: real when GEMINI_API_KEY is configured.
+Iiko: mock adapter, with Iiko-ready payloads and sync logs preserved for sponsor integration.
 ```

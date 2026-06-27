@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .vite/
+.env
 
 # Local backend state
 prisma/*.db

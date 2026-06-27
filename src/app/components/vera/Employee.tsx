@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   House, Microphone, ClipboardText, Package, User, CaretLeft, Check, Sparkle,
@@ -10,9 +10,10 @@ import { Button, StatusLabel, AnimatedNumber, Avatar, Tag } from "./ui";
 import { Sticker, Petals } from "./brand";
 import { Waveform, MicOrb } from "./voice";
 import {
-  useStore, timeAgo, tenge, tengeShort, PRODUCTS, CATEGORY_COLOR,
-  type WriteOff, type Draft,
+  useStore, timeAgo, tenge, tengeShort, CATEGORY_COLOR,
+  type WriteOff,
 } from "./store";
+import type { Extraction, CreateFields } from "./api";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { translate as T } from "./i18n";
 
@@ -22,12 +23,6 @@ const navItems = (): NavItem[] => [
   { id: "requests", label: T("requests"), Icon: ClipboardText },
   { id: "products", label: T("products"), Icon: Package },
   { id: "profile", label: T("profile"), Icon: User },
-];
-
-const PROOF = [
-  "https://images.unsplash.com/photo-1466637574441-749b8f19452f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=900",
-  "https://images.unsplash.com/photo-1591189863430-ab87e120f312?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=900",
-  "https://images.unsplash.com/photo-1503810473512-f64b56827964?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=900",
 ];
 
 function myName() { try { return (localStorage.getItem("vera.user") || "").trim(); } catch { return ""; } }
@@ -410,8 +405,12 @@ function RequestRow({ r, i, expandable }: { r: WriteOff; i: number; expandable?:
 }
 
 function Products() {
+  const { products } = useStore();
   const [q, setQ] = useState("");
-  const list: typeof PRODUCTS = []; // catalog is loaded from the backend (api.listProducts)
+  const list = useMemo(
+    () => products.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase())),
+    [products, q],
+  );
   const cats = Array.from(new Set(list.map((p) => p.category)));
   return (
     <div className="px-5">
@@ -517,53 +516,148 @@ function greeting() {
 }
 
 /* =============================== Capture flow ============================= */
-const SCENARIOS: { transcript: string; draft: Omit<Draft, "transcript">; missing?: ("qty" | "deduction")[] }[] = [
-  { transcript: "Write off 3 cutlets, they fell on the floor during assembly, Aktau Mall, without deduction.", draft: { product: "Beef cutlets", category: "Meat", qty: "3 pcs", point: "Aktau Mall", reason: "Fell on the floor during order assembly", deduction: "without", comment: "3 beef cutlets fell on the floor during order assembly and cannot be reused per sanitary rules.", loss: 2130 } },
-  { transcript: "Mozzarella went past its shelf life, found it at the morning check, about one point two kilos.", draft: { product: "Mozzarella", category: "Dairy", qty: "1.2 kg", point: "Aktau Mall", reason: "Expired shelf life found at morning check", deduction: "with", comment: "1.2 kg mozzarella past shelf life, removed during the morning stock check.", loss: 5376 }, missing: ["deduction"] },
-  { transcript: "Some croissants burned in the oven this morning, they're not sellable.", draft: { product: "Croissants", category: "Bakery", qty: "6 pcs", point: "Aktau Mall", reason: "Over-baked and burned in the oven", deduction: "without", comment: "6 croissants over-baked and burned, not suitable for sale.", loss: 1890 }, missing: ["qty"] },
-];
-
-type Step = "record" | "extract" | "missing" | "photo" | "confirm" | "done";
+type Step = "record" | "transcript" | "extract" | "missing" | "photo" | "confirm" | "done";
+const PROGRESS: Record<Step, number> = { record: 1, transcript: 2, extract: 3, missing: 4, photo: 5, confirm: 6, done: 6 };
 
 function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () => void }) {
   const store = useStore();
-  const scenario = useMemo(() => SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)], []);
   const [step, setStep] = useState<Step>("record");
   const [recording, setRecording] = useState(false);
-  const [revealed, setRevealed] = useState(0);
-  const [qty, setQty] = useState<string | null>(null);
-  const [deduction, setDeduction] = useState<"without" | "with" | null>(null);
-  const [photoIdx, setPhotoIdx] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (step !== "extract") return;
-    setRevealed(0);
-    const id = window.setInterval(() => setRevealed((r) => (r >= 5 ? (window.clearInterval(id), r) : r + 1)), 420);
-    return () => window.clearInterval(id);
-  }, [step]);
+  const [transcript, setTranscript] = useState("");
+  const [ext, setExt] = useState<Extraction | null>(null);
 
-  const missing = scenario.missing ?? [];
-  const fields = [
-    { k: "product", label: "Product", value: scenario.draft.product },
-    { k: "qty", label: "Quantity", value: missing.includes("qty") ? qty ?? "—" : scenario.draft.qty },
-    { k: "point", label: "Trade point", value: scenario.draft.point },
-    { k: "reason", label: "Reason", value: scenario.draft.reason },
-    { k: "deduction", label: "Deduction", value: missing.includes("deduction") ? (deduction ? (deduction === "without" ? "Without deduction" : "With deduction") : "—") : scenario.draft.deduction === "without" ? "Without deduction" : "With deduction" },
-  ];
+  // Structured fields (prefilled from extraction, editable in the missing step).
+  const [productId, setProductId] = useState<string | null>(null);
+  const [tradePointId, setTradePointId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState<number | null>(null);
+  const [unit, setUnit] = useState<string | null>(null);
+  const [deductionType, setDeductionType] = useState<"with_deduction" | "without_deduction" | null>(null);
+  const [reason, setReason] = useState("");
 
-  function finish() {
-    store.submit({
-      ...scenario.draft,
-      transcript: scenario.transcript,
-      qty: missing.includes("qty") ? qty ?? scenario.draft.qty : scenario.draft.qty,
-      deduction: missing.includes("deduction") ? deduction ?? scenario.draft.deduction : scenario.draft.deduction,
-      photo: photoIdx != null ? PROOF[photoIdx] : undefined,
-    });
-    setStep("done");
-    window.setTimeout(onSubmitted, 1800);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const product = store.products.find((p) => p.id === productId) ?? null;
+  const point = store.tradePoints.find((t) => t.id === tradePointId) ?? null;
+  const estLoss = product && quantity ? product.cost * quantity : 0;
+
+  const needs = { product: !productId, point: !tradePointId, qty: quantity == null, deduction: !deductionType };
+  const hasMissing = needs.product || needs.point || needs.qty || needs.deduction;
+
+  function applyExtraction(x: Extraction) {
+    setExt(x);
+    setProductId(x.productId);
+    setTradePointId(x.tradePointId);
+    setQuantity(x.quantity);
+    setUnit(x.unit ?? store.products.find((p) => p.id === x.productId)?.unit ?? null);
+    setDeductionType(x.deductionType);
+    setReason(x.reason ?? "");
   }
 
-  const progress = { record: 1, extract: 2, missing: 3, photo: 4, confirm: 5, done: 5 }[step];
+  async function startRecording() {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      mr.onstop = () => stream.getTracks().forEach((t) => t.stop());
+      mr.start();
+      mediaRef.current = mr;
+      setRecording(true);
+    } catch {
+      // Mic blocked/unavailable — fall back to typing the transcript.
+      setError("Microphone unavailable — type what happened instead.");
+      setStep("transcript");
+    }
+  }
+
+  async function stopAndTranscribe() {
+    const mr = mediaRef.current;
+    if (!mr) return;
+    const blob: Blob = await new Promise((resolve) => {
+      mr.addEventListener("stop", () => resolve(new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" })), { once: true });
+      mr.stop();
+    });
+    setRecording(false);
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await store.transcribe(blob);
+      setTranscript(res.transcript);
+    } catch {
+      setError("Couldn't transcribe — type or edit the text below.");
+    } finally {
+      setBusy(false);
+      setStep("transcript");
+    }
+  }
+
+  async function runExtraction() {
+    if (!transcript.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const x = await store.extract(transcript.trim());
+      applyExtraction(x);
+      setStep("extract");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Extraction failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function pickPhoto(file: File) {
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+  function buildFields(): CreateFields {
+    return {
+      productId: productId ?? undefined,
+      productName: productId ? undefined : ext?.productName ?? undefined,
+      tradePointId: tradePointId ?? undefined,
+      quantity: quantity ?? undefined,
+      unit: unit ?? product?.unit ?? undefined,
+      reason: reason.trim() || undefined,
+      deductionType: deductionType ?? undefined,
+      comment: ext?.aiGeneratedComment ?? ext?.comment ?? undefined,
+      voiceTranscript: transcript.trim() || undefined,
+      aiGeneratedComment: ext?.aiGeneratedComment ?? undefined,
+      aiConfidenceScore: ext?.confidenceScore ?? undefined,
+    };
+  }
+
+  async function finish() {
+    setBusy(true);
+    setError(null);
+    try {
+      await store.submitWriteOff({ fields: buildFields(), photoFile });
+      setStep("done");
+      window.setTimeout(onSubmitted, 1600);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not submit");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const reviewRows = [
+    { k: "product", label: "Product", value: product?.name ?? ext?.productName ?? "—" },
+    { k: "qty", label: "Quantity", value: quantity != null ? `${quantity}${unit ? ` ${unit}` : ""}` : "—" },
+    { k: "point", label: "Trade point", value: point?.name ?? "—" },
+    { k: "reason", label: "Reason", value: reason || "—" },
+    { k: "deduction", label: "Deduction", value: deductionType === "with_deduction" ? "With deduction" : deductionType === "without_deduction" ? "Without deduction" : "—" },
+  ];
+
+  const progress = PROGRESS[step];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-[var(--vera-cream)]">
@@ -572,7 +666,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="grid place-items-center size-10 rounded-full bg-white/70 text-[var(--vera-cocoa)]"><CaretLeft size={20} /></button>
             <div className="flex-1 flex gap-1.5">
-              {[1, 2, 3, 4, 5].map((n) => (
+              {[1, 2, 3, 4, 5, 6].map((n) => (
                 <div key={n} className="h-1.5 flex-1 rounded-full bg-[var(--vera-rose-surface)] overflow-hidden">
                   <motion.div className="h-full bg-[var(--vera-strawberry)]" animate={{ width: progress >= n ? "100%" : "0%" }} transition={{ duration: 0.4 }} />
                 </div>
@@ -581,88 +675,109 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
           </div>
         )}
 
+        {error && <p className="mt-3 rounded-xl bg-[var(--vera-blush)] px-3.5 py-2.5 text-[12.5px] font-medium text-[var(--vera-strawberry)]">{error}</p>}
+
         <AnimatePresence mode="wait">
           {step === "record" && (
             <motion.div key="rec" {...fade} className="flex-1 flex flex-col items-center justify-center text-center">
               <h2 className="text-[22px]">{recording ? "Listening…" : "Tell VERA what happened"}</h2>
               <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)] max-w-[30ch]">Product, quantity, trade point, and deduction type.</p>
-              <div className="my-8"><MicOrb active={recording} onClick={() => setRecording((r) => !r)} size={140} /></div>
+              <div className="my-8"><MicOrb active={recording} onClick={() => (recording ? stopAndTranscribe() : startRecording())} size={140} /></div>
               <Waveform active={recording} />
-              <p className="mt-8 text-[16px] leading-relaxed min-h-[60px] max-w-[34ch]">{recording ? <TypeLine text={scenario.transcript} /> : <span className="text-[var(--vera-rose-gray)]">Your words appear here as you speak.</span>}</p>
-              <Button full className="mt-6 max-w-[300px]" disabled={!recording} onClick={() => setStep("extract")}>Finish recording</Button>
+              <p className="mt-8 text-[15px] leading-relaxed min-h-[48px] max-w-[34ch] text-[var(--vera-rose-gray)]">
+                {recording ? "Recording… tap the mic to finish." : busy ? "Transcribing…" : "Tap the mic and speak naturally."}
+              </p>
+              <Button full className="mt-6 max-w-[300px]" disabled={!recording || busy} onClick={stopAndTranscribe}>Finish recording</Button>
+              <button onClick={() => setStep("transcript")} className="mt-4 text-[13px] font-semibold text-[var(--vera-rose-gray)] underline">Type instead</button>
+            </motion.div>
+          )}
+
+          {step === "transcript" && (
+            <motion.div key="tra" {...fade} className="flex-1 flex flex-col pt-8">
+              <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Microphone size={18} /><span className="font-bold">Your words</span></div>
+              <h2 className="mt-2 text-[24px]">Review the transcript</h2>
+              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)]">Edit if needed, then let VERA structure it.</p>
+              <textarea
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                rows={6}
+                placeholder="e.g. Write off 3 beef cutlets, fell on the floor at Aktau Mall, without deduction."
+                className="mt-5 w-full rounded-2xl border-[1.5px] border-[#e6ded7] bg-white px-4 py-3.5 outline-none focus:border-[var(--vera-strawberry)] text-[15px] leading-relaxed"
+              />
+              <div className="mt-auto pt-8"><Button full disabled={!transcript.trim() || busy} onClick={runExtraction}><Sparkle size={18} /> {busy ? "Structuring…" : "Structure with VERA"}</Button></div>
             </motion.div>
           )}
 
           {step === "extract" && (
             <motion.div key="ext" {...fade} className="flex-1 flex flex-col pt-8 overflow-y-auto">
-              <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Sparkle size={18} /><span className="font-bold">VERA structured your request</span></div>
+              <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Sparkle size={18} /><span className="font-bold">VERA structured your request</span>{ext && <span className="ml-auto text-[12px] font-semibold text-[var(--vera-rose-gray)]">{Math.round(ext.confidenceScore * 100)}% confident</span>}</div>
               <h2 className="mt-2 text-[24px]">Check the details</h2>
               <div className="mt-6 divide-y divide-[#f0d8cf]">
-                {fields.map((f, i) => (
-                  <div key={f.k} className="flex items-center justify-between py-4">
+                {reviewRows.map((f, i) => (
+                  <motion.div key={f.k} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className="flex items-center justify-between py-4">
                     <span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">{f.label}</span>
-                    {revealed > i ? (
-                      <motion.span initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} className="font-semibold text-[var(--vera-cocoa)] text-right max-w-[60%]">{f.value}</motion.span>
-                    ) : (
-                      <motion.span className="h-4 w-28 rounded-full bg-[var(--vera-rose-surface)]" animate={{ opacity: [0.4, 0.9, 0.4] }} transition={{ duration: 1.1, repeat: Infinity }} />
-                    )}
-                  </div>
+                    <span className="font-semibold text-[var(--vera-cocoa)] text-right max-w-[60%]">{f.value}</span>
+                  </motion.div>
                 ))}
               </div>
-              <motion.div animate={{ opacity: revealed >= 5 ? 1 : 0 }} className="mt-5">
-                <p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Cleaned comment</p>
-                <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--vera-cocoa)]">{scenario.draft.comment}</p>
-              </motion.div>
-              <div className="mt-auto pt-8"><Button full disabled={revealed < 5} onClick={() => setStep(missing.length ? "missing" : "photo")}><Check size={18} /> {missing.length ? "Add missing details" : "Looks correct"}</Button></div>
+              {(ext?.aiGeneratedComment || ext?.comment) && (
+                <div className="mt-5">
+                  <p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Cleaned comment</p>
+                  <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--vera-cocoa)]">{ext?.aiGeneratedComment ?? ext?.comment}</p>
+                </div>
+              )}
+              <div className="mt-auto pt-8"><Button full onClick={() => setStep(hasMissing ? "missing" : "photo")}><Check size={18} /> {hasMissing ? "Add missing details" : "Looks correct"}</Button></div>
             </motion.div>
           )}
 
           {step === "missing" && (
-            <motion.div key="mis" {...fade} className="flex-1 flex flex-col pt-8">
-              <h2 className="text-[24px] max-w-[16ch]">{missing.length === 1 ? "One detail is missing" : "Two details are missing"}</h2>
+            <motion.div key="mis" {...fade} className="flex-1 flex flex-col pt-8 overflow-y-auto">
+              <h2 className="text-[24px] max-w-[16ch]">Fill the missing details</h2>
               <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)]">Tap to fill — faster than typing.</p>
-              {missing.includes("qty") && (
-                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Quantity</p><div className="flex flex-wrap gap-3">{["1 pc", "2 pcs", "6 pcs", "Custom"].map((x) => <Chip key={x} on={qty === x} onClick={() => setQty(x)}>{x}</Chip>)}</div></div>
+              {needs.product && (
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Product</p><div className="flex flex-wrap gap-2.5">{store.products.map((p) => <Chip key={p.id} on={productId === p.id} onClick={() => { setProductId(p.id); setUnit(p.unit); }}>{p.name}</Chip>)}</div></div>
               )}
-              {missing.includes("deduction") && (
-                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Deduction</p><div className="flex flex-wrap gap-3"><Chip on={deduction === "without"} onClick={() => setDeduction("without")}>Without deduction</Chip><Chip on={deduction === "with"} onClick={() => setDeduction("with")}>With deduction</Chip></div></div>
+              {needs.point && (
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Trade point</p><div className="flex flex-wrap gap-2.5">{store.tradePoints.map((t) => <Chip key={t.id} on={tradePointId === t.id} onClick={() => setTradePointId(t.id)}>{t.name}</Chip>)}</div></div>
               )}
-              <div className="mt-auto pt-8"><Button full disabled={(missing.includes("qty") && !qty) || (missing.includes("deduction") && !deduction)} onClick={() => setStep("photo")}>Continue</Button></div>
+              {needs.qty && (
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Quantity{unit ? ` (${unit})` : ""}</p>
+                  <input type="number" inputMode="decimal" min={0} step="0.1" value={quantity ?? ""} onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : null)} placeholder="0" className="w-40 rounded-2xl border-[1.5px] border-[#e6ded7] bg-white px-4 py-3 outline-none focus:border-[var(--vera-strawberry)] text-[16px]" /></div>
+              )}
+              {needs.deduction && (
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Deduction</p><div className="flex flex-wrap gap-3"><Chip on={deductionType === "without_deduction"} onClick={() => setDeductionType("without_deduction")}>Without deduction</Chip><Chip on={deductionType === "with_deduction"} onClick={() => setDeductionType("with_deduction")}>With deduction</Chip></div></div>
+              )}
+              <div className="mt-auto pt-8"><Button full disabled={hasMissing} onClick={() => setStep("photo")}>Continue</Button></div>
             </motion.div>
           )}
 
           {step === "photo" && (
             <motion.div key="pho" {...fade} className="flex-1 flex flex-col pt-8">
               <h2 className="text-[24px]">Attach photo proof</h2>
-              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)] max-w-[34ch]">Pick the shot that clearly shows the product and damage.</p>
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                {PROOF.map((p, i) => (
-                  <motion.button key={p} whileTap={{ scale: 0.95 }} onClick={() => setPhotoIdx(i)} className={`relative aspect-square overflow-hidden rounded-2xl ring-2 transition-all ${photoIdx === i ? "ring-[var(--vera-strawberry)] scale-[1.02]" : "ring-transparent"}`}>
-                    <ImageWithFallback src={p} alt="proof" className="size-full object-cover" />
-                    {photoIdx === i && <span className="absolute inset-0 grid place-items-center bg-[rgba(242,85,95,0.35)]"><span className="grid place-items-center size-8 rounded-full bg-white text-[var(--vera-strawberry)]"><Check size={18} /></span></span>}
-                  </motion.button>
-                ))}
-              </div>
-              <div className="mt-6 space-y-3">
-                {["Product visible", "Damage visible", "Request matches photo"].map((c) => (
-                  <div key={c} className="flex items-center gap-3 text-[15px]"><span className={`grid place-items-center size-6 rounded-full transition-colors ${photoIdx != null ? "bg-[var(--vera-mint)] text-white" : "bg-[var(--vera-rose-surface)] text-white/70"}`}><Check size={14} /></span><span className="font-semibold text-[var(--vera-cocoa)]">{c}</span></div>
-                ))}
-              </div>
-              <div className="mt-auto pt-8 flex items-center gap-3"><Button variant="soft" onClick={() => setPhotoIdx(null)}><Camera size={18} /> Retake</Button><Button full disabled={photoIdx == null} onClick={() => setStep("confirm")}>Continue</Button></div>
+              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)] max-w-[34ch]">Take or upload a shot that clearly shows the product and damage.</p>
+              <label className="mt-6 relative grid place-items-center aspect-[4/3] overflow-hidden rounded-3xl border-[1.5px] border-dashed border-[#e0c8bf] bg-white/60 cursor-pointer">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="proof" className="absolute inset-0 size-full object-cover" />
+                ) : (
+                  <span className="flex flex-col items-center gap-2 text-[var(--vera-rose-gray)]"><Camera size={32} /><span className="text-[14px] font-semibold">Tap to take or upload</span></span>
+                )}
+                <input type="file" accept="image/*" capture="environment" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => { const f = e.target.files?.[0]; if (f) pickPhoto(f); }} />
+              </label>
+              <div className="mt-auto pt-8 flex items-center gap-3">{photoPreview && <Button variant="soft" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}><Camera size={18} /> Retake</Button>}<Button full disabled={!photoFile} onClick={() => setStep("confirm")}>Continue</Button></div>
             </motion.div>
           )}
 
           {step === "confirm" && (
             <motion.div key="con" {...fade} className="flex-1 flex flex-col pt-8 overflow-y-auto">
               <h2 className="text-[24px]">Ready to send</h2>
-              {photoIdx != null && <div className="mt-5 overflow-hidden rounded-3xl"><ImageWithFallback src={PROOF[photoIdx]} alt="proof" className="w-full h-44 object-cover" /></div>}
+              {photoPreview && <div className="mt-5 overflow-hidden rounded-3xl"><img src={photoPreview} alt="proof" className="w-full h-44 object-cover" /></div>}
               <div className="mt-5 divide-y divide-[#f0d8cf]">
-                {fields.map((f) => (
+                {reviewRows.map((f) => (
                   <div key={f.k} className="flex items-center justify-between py-3"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">{f.label}</span><span className="font-semibold text-[var(--vera-cocoa)] text-right max-w-[60%]">{f.value}</span></div>
                 ))}
-                <div className="flex items-center justify-between py-3"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Est. loss</span><span className="font-bold text-[var(--vera-berry)]">{tenge(scenario.draft.loss)}</span></div>
+                <div className="flex items-center justify-between py-3"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Est. loss</span><span className="font-bold text-[var(--vera-berry)]">{tenge(estLoss)}</span></div>
               </div>
-              <div className="mt-auto pt-8 flex items-center gap-3"><Button variant="soft" onClick={() => setStep("extract")}>Edit</Button><Button full onClick={finish}>Submit for approval</Button></div>
+              <div className="mt-auto pt-8 flex items-center gap-3"><Button variant="soft" disabled={busy} onClick={() => setStep("extract")}>Edit</Button><Button full disabled={busy} onClick={finish}>{busy ? "Sending…" : "Submit for approval"}</Button></div>
             </motion.div>
           )}
 
@@ -683,12 +798,3 @@ function Chip({ children, on, onClick }: { children: React.ReactNode; on: boolea
   return <motion.button whileTap={{ scale: 0.95 }} onClick={onClick} className={`rounded-full px-5 py-3 font-semibold transition-colors ${on ? "bg-[var(--vera-strawberry)] text-[var(--vera-accent-cream)]" : "bg-white/70 text-[var(--vera-cocoa)] border border-[#f0d8cf]"}`}>{children}</motion.button>;
 }
 
-function TypeLine({ text }: { text: string }) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    setN(0);
-    const id = window.setInterval(() => setN((v) => (v >= text.length ? (window.clearInterval(id), v) : v + 1)), 28);
-    return () => window.clearInterval(id);
-  }, [text]);
-  return <span className="text-[var(--vera-cocoa)]">{text.slice(0, n)}<span className="inline-block w-[2px] h-[1.1em] align-middle bg-[var(--vera-strawberry)] ml-0.5 animate-pulse" /></span>;
-}

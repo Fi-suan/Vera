@@ -30,6 +30,23 @@ const fade = {
   transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
 };
 
+/* Map the backend statusTone (server/src/serializer.ts) onto the colour keys
+   StatusLabel understands, and surface the backend's real status label. */
+const TONE_KEY: Record<string, string> = {
+  info: "pending",
+  warning: "syncing",
+  success: "approved",
+  danger: "rejected",
+  neutral: "idle",
+};
+function statusView(r: WriteOff) {
+  return {
+    label: r.ui?.statusLabel ?? r.status,
+    tone: TONE_KEY[r.ui?.statusTone ?? "neutral"] ?? "idle",
+    pulse: r.backendStatus === "pending_review" || r.backendStatus === "syncing_to_iiko",
+  };
+}
+
 export function Manager({ onExit }: { onExit: () => void }) {
   const [tab, setTab] = useState("overview");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -131,7 +148,8 @@ function Overview({ onQueue }: { onQueue: () => void }) {
 
 function Queue({ onOpen }: { onOpen: (id: string) => void }) {
   const { requests } = useStore();
-  const pending = requests.filter((r) => r.status === "pending");
+  // Only requests actually submitted for review (not still-draft/missing_info).
+  const pending = requests.filter((r) => r.backendStatus === "pending_review");
   return (
     <div className="px-5">
       <PageHead title={T("reviewQueueTitle")} subtitle={T("reviewQueueSub")} action={pending.length > 0 ? <StatusLabel tone="pending" pulse>{pending.length} {T("waiting")}</StatusLabel> : undefined} />
@@ -195,8 +213,8 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
                 <span className="flex items-center gap-2.5 min-w-0"><span className="size-8 rounded-xl grid place-items-center shrink-0" style={{ background: `${CATEGORY_COLOR[r.category]}22`, color: CATEGORY_COLOR[r.category] }}><ForkKnife size={16} /></span><span className="truncate"><span className="font-semibold">{r.product}</span> <span className="text-[var(--vera-rose-gray)]">· {r.qty}</span></span></span>
                 <span className="flex items-center gap-2 min-w-0"><Avatar name={e.name} hue={e.hue} size={26} /><span className="text-[13px] truncate">{e.name.split(" ")[0]}</span></span>
                 <span className="text-[14px]">{r.point}</span>
-                <span><StatusLabel tone={r.status} pulse={r.status === "pending"}>{r.status}</StatusLabel></span>
-                <span><StatusLabel tone={r.sync} pulse={r.sync === "syncing"}>{r.sync === "idle" ? "—" : r.sync}</StatusLabel></span>
+                <span>{(() => { const s = statusView(r); return <StatusLabel tone={s.tone} pulse={s.pulse}>{s.label}</StatusLabel>; })()}</span>
+                <span><StatusLabel tone={r.sync} pulse={r.sync === "syncing"}>{r.ui?.sync.label ?? (r.sync === "idle" ? "—" : r.sync)}</StatusLabel></span>
                 <span className="text-right font-mono font-bold text-[var(--vera-cocoa)] text-[14px]">{tenge(r.loss)}</span>
                 <CaretRight size={16} className="text-[var(--vera-rose-gray)]" />
               </motion.button>
@@ -210,7 +228,7 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
           return (
             <button key={r.id} onClick={() => onOpen(r.id)} className="w-full flex items-center gap-3 py-3.5 text-left">
               <span className="size-10 rounded-xl grid place-items-center shrink-0" style={{ background: `${CATEGORY_COLOR[r.category]}22`, color: CATEGORY_COLOR[r.category] }}><ForkKnife size={18} /></span>
-              <div className="min-w-0 flex-1"><div className="font-semibold truncate">{r.qty} · {r.product}</div><div className="text-[13px] text-[var(--vera-rose-gray)] truncate">{e.name.split(" ")[0]} · {r.point}</div><div className="mt-1"><StatusLabel tone={r.status} pulse={r.status === "pending"}>{r.status}</StatusLabel></div></div>
+              <div className="min-w-0 flex-1"><div className="font-semibold truncate">{r.qty} · {r.product}</div><div className="text-[13px] text-[var(--vera-rose-gray)] truncate">{e.name.split(" ")[0]} · {r.point}</div><div className="mt-1">{(() => { const s = statusView(r); return <StatusLabel tone={s.tone} pulse={s.pulse}>{s.label}</StatusLabel>; })()}</div></div>
               <span className="font-mono font-bold text-[14px]">{tenge(r.loss)}</span>
             </button>
           );
@@ -324,7 +342,7 @@ function Drawer({ r, onClose, onApprove, onReject }: { r: WriteOff; onClose: () 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-40 bg-[rgba(43,32,35,0.45)] backdrop-blur-sm" />
       <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", stiffness: 240, damping: 30 }} className="fixed right-0 top-0 z-50 h-[100dvh] w-full max-w-[480px] bg-[var(--vera-white-cream)] shadow-[-30px_0_60px_-30px_rgba(43,32,35,0.5)] overflow-y-auto">
         <div className="p-6">
-          <div className="flex items-center justify-between"><StatusLabel tone={r.status} pulse={r.status === "pending"}>{r.status}</StatusLabel><button onClick={onClose} className="grid place-items-center size-9 rounded-full bg-[var(--vera-blush)] text-[var(--vera-cocoa)]"><X size={18} /></button></div>
+          <div className="flex items-center justify-between">{(() => { const s = statusView(r); return <StatusLabel tone={s.tone} pulse={s.pulse}>{s.label}</StatusLabel>; })()}<button onClick={onClose} className="grid place-items-center size-9 rounded-full bg-[var(--vera-blush)] text-[var(--vera-cocoa)]"><X size={18} /></button></div>
 
           {r.photo && <div className="mt-5 overflow-hidden rounded-3xl"><ImageWithFallback src={r.photo} alt={r.product} className="w-full h-56 object-cover" /></div>}
 
@@ -346,8 +364,8 @@ function Drawer({ r, onClose, onApprove, onReject }: { r: WriteOff; onClose: () 
 
           <div className="mt-5 flex items-center justify-between"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Est. loss</span><span className="font-bold text-[var(--vera-berry)] text-[18px]">{tenge(r.loss)}</span></div>
 
-          {r.status === "pending" && !rejecting && (
-            <div className="mt-8 flex items-center gap-3"><Button variant="danger" onClick={() => setRejecting(true)}><X size={18} /> Reject</Button><Button full onClick={onApprove}><Check size={18} /> Approve & sync</Button></div>
+          {(r.ui?.actions.canApprove || r.ui?.actions.canReject) && !rejecting && (
+            <div className="mt-8 flex items-center gap-3">{r.ui?.actions.canReject && <Button variant="danger" onClick={() => setRejecting(true)}><X size={18} /> Reject</Button>}{r.ui?.actions.canApprove && <Button full onClick={onApprove}><Check size={18} /> Approve & sync</Button>}</div>
           )}
 
           <AnimatePresence>
@@ -361,7 +379,7 @@ function Drawer({ r, onClose, onApprove, onReject }: { r: WriteOff; onClose: () 
             )}
           </AnimatePresence>
 
-          {r.status === "approved" && (
+          {["approved", "syncing_to_iiko", "synced_to_iiko", "iiko_sync_failed"].includes(r.backendStatus) && (
             <div className="mt-8 rounded-2xl bg-[var(--vera-blush)] p-4"><StatusLabel tone={r.sync} pulse={r.sync === "syncing"}>{r.sync === "syncing" ? "Syncing to Iiko…" : r.sync === "synced" ? "Synced to Iiko" : r.sync === "failed" ? "Sync failed — retry in Iiko center" : "Approved"}</StatusLabel></div>
           )}
         </div>

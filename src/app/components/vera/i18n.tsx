@@ -17,11 +17,16 @@ type Dict = Record<string, [ru: string, kz: string, en: string]>;
 const D: Dict = {
   // auth
   welcome: ["С возвращением", "Қайта келдіңіз", "Welcome back"],
-  signinSub: ["Войдите по имени и коду доступа.", "Атыңыз бен кіру кодын енгізіңіз.", "Sign in with your name and access code."],
+  signinSub: ["Войдите по email и паролю.", "Email және құпиясөзбен кіріңіз.", "Sign in with your email and password."],
   fullName: ["Полное имя", "Толық аты", "Full name"],
   namePh: ["Ваше имя", "Атыңыз", "Your name"],
   accessCode: ["Код доступа", "Кіру коды", "Access code"],
   codePh: ["Введите код", "Кодты енгізіңіз", "Enter your code"],
+  emailLabel: ["Email", "Email", "Email"],
+  emailPh: ["you@vera.demo", "you@vera.demo", "you@vera.demo"],
+  passwordLabel: ["Пароль", "Құпиясөз", "Password"],
+  passwordPh: ["Введите пароль", "Құпиясөзді енгізіңіз", "Enter your password"],
+  signinError: ["Не удалось войти. Проверьте email и пароль.", "Кіру мүмкін болмады. Email мен құпиясөзді тексеріңіз.", "Could not sign in. Check your email and password."],
   continue: ["Продолжить", "Жалғастыру", "Continue"],
   protected: ["Защищено · код не покидает точку", "Қорғалған · код нүктеден шықпайды", "Protected · codes never leave the point"],
   chooseRole: ["Как вы работаете сегодня?", "Бүгін қалай жұмыс істейсіз?", "How are you working today?"],

@@ -4,10 +4,10 @@ import {
   useState,
   useCallback,
   useMemo,
-  useEffect,
   type ReactNode,
 } from "react";
-import { api } from "./api";
+import { ApiError, api } from "./api";
+import type { CreateFields, Extraction } from "./api";
 
 /* ================================================================== */
 /* VERA data layer.                                                    */
@@ -21,7 +21,27 @@ export type Sync = "idle" | "syncing" | "synced" | "failed";
 export type Category = "Meat" | "Dairy" | "Bakery" | "Produce" | "Seafood" | "Prepared";
 
 export type Employee = { id: string; name: string; role: string; point: string; hue: number };
-export type Product = { name: string; category: Category; unit: string; cost: number };
+export type Product = { id: string; name: string; category: Category; unit: string; cost: number };
+
+/* Rich presentation block produced by the backend serializer
+   (server/src/serializer.ts buildRequestUi). Lets the manager view show the
+   full lifecycle (missing_info/syncing/synced/failed) and the right actions. */
+export type WriteOffUi = {
+  statusLabel: string;
+  statusTone: "neutral" | "warning" | "success" | "danger" | "info";
+  costLabel: string;
+  missingFieldLabels: string[];
+  sync: { status: string; label: string; tone: string; documentId?: string | null };
+  actions: {
+    canEdit: boolean;
+    canAttachPhoto: boolean;
+    canSubmit: boolean;
+    canApprove: boolean;
+    canReject: boolean;
+    canRetryIikoSync: boolean;
+  };
+  primaryAction: string | null;
+};
 
 export type WriteOff = {
   id: string;
@@ -41,6 +61,10 @@ export type WriteOff = {
   reviewerNote?: string;
   photo?: string;
   transcript?: string;
+  /** Raw backend status (8-state lifecycle) for fidelity beyond the coarse `status`. */
+  backendStatus: string;
+  /** Backend-computed labels/actions; absent on optimistic local rows. */
+  ui?: WriteOffUi;
 };
 
 export type Draft = {
@@ -71,28 +95,97 @@ const DEFAULT_EMPLOYEES: Employee[] = [
 
 export let EMPLOYEES: Employee[] = DEFAULT_EMPLOYEES;
 
+/* Default catalog (fallback before bootstrap loads the real one from the API). */
 export const PRODUCTS: Product[] = [
-  { name: "Beef cutlets", category: "Meat", unit: "pcs", cost: 710 },
-  { name: "Chicken fillet", category: "Meat", unit: "kg", cost: 2200 },
-  { name: "Mozzarella", category: "Dairy", unit: "kg", cost: 4480 },
-  { name: "Heavy cream", category: "Dairy", unit: "L", cost: 1650 },
-  { name: "Croissants", category: "Bakery", unit: "pcs", cost: 315 },
-  { name: "Sourdough loaf", category: "Bakery", unit: "pcs", cost: 980 },
-  { name: "Cherry tomatoes", category: "Produce", unit: "kg", cost: 1280 },
-  { name: "Avocado", category: "Produce", unit: "pcs", cost: 690 },
-  { name: "Salmon fillet", category: "Seafood", unit: "kg", cost: 9550 },
-  { name: "Caesar bowls", category: "Prepared", unit: "pcs", cost: 1740 },
+  { id: "p-beef-cutlets", name: "Beef cutlets", category: "Meat", unit: "pcs", cost: 710 },
+  { id: "p-chicken-fillet", name: "Chicken fillet", category: "Meat", unit: "kg", cost: 2200 },
+  { id: "p-mozzarella", name: "Mozzarella", category: "Dairy", unit: "kg", cost: 4480 },
+  { id: "p-cream", name: "Heavy cream", category: "Dairy", unit: "L", cost: 1650 },
+  { id: "p-croissants", name: "Croissants", category: "Bakery", unit: "pcs", cost: 315 },
+  { id: "p-sourdough", name: "Sourdough loaf", category: "Bakery", unit: "pcs", cost: 980 },
+  { id: "p-tomatoes", name: "Cherry tomatoes", category: "Produce", unit: "kg", cost: 1280 },
+  { id: "p-avocado", name: "Avocado", category: "Produce", unit: "pcs", cost: 690 },
+  { id: "p-salmon", name: "Salmon fillet", category: "Seafood", unit: "kg", cost: 9550 },
+  { id: "p-caesar", name: "Caesar bowls", category: "Prepared", unit: "pcs", cost: 1740 },
 ];
 
-let docSeq = Date.now() % 100000;
-const nextDoc = () => `WO-${docSeq++}`;
+function hueFromId(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
+  return h;
+}
+
+type BackendUser = { id: string; name: string; role: string; tradePointId?: string | null };
+type BackendTradePoint = { id: string; name: string };
+
+function toEmployee(user: BackendUser, tradePoints: BackendTradePoint[]): Employee {
+  const point = tradePoints.find((t) => t.id === user.tradePointId)?.name ?? "—";
+  return { id: user.id, name: user.name, role: user.role, point, hue: hueFromId(user.id) };
+}
+
+const toFrontRole = (backendRole: string): Role => (backendRole === "employee" ? "employee" : "manager");
+
+export type TradePoint = { id: string; name: string };
+
+function toProduct(p: { id: string; name: string; category: string; unit: string; costPrice: number }): Product {
+  const category = (["Meat", "Dairy", "Bakery", "Produce", "Seafood", "Prepared"].includes(p.category)
+    ? p.category
+    : "Prepared") as Category;
+  return { id: p.id, name: p.name, category, unit: p.unit, cost: p.costPrice };
+}
+
+function missingFieldLabel(field: string) {
+  const map: Record<string, string> = {
+    tradePointId: "trade point",
+    productId: "product",
+    productNameFallback: "product name",
+    quantity: "quantity",
+    reason: "reason",
+    deductionType: "deduction type",
+    deductionEmployeeId: "employee for deduction",
+    comment: "comment",
+    photoUrl: "proof photo",
+  };
+  return map[field] ?? field;
+}
+
+function applyBootstrap(
+  user: BackendUser,
+  boot: {
+    users: BackendUser[];
+    tradePoints: BackendTradePoint[];
+    products: Array<{ id: string; name: string; category: string; unit: string; costPrice: number }>;
+  },
+  setters: {
+    setEmployees: (value: Employee[]) => void;
+    setProducts: (value: Product[]) => void;
+    setTradePoints: (value: TradePoint[]) => void;
+    setMe: (value: Employee) => void;
+  },
+) {
+  const emps = boot.users.map((u) => toEmployee(u, boot.tradePoints));
+  EMPLOYEES = emps;
+  setters.setEmployees(emps);
+  setters.setProducts(boot.products.map(toProduct));
+  setters.setTradePoints(boot.tradePoints);
+  setters.setMe(emps.find((e) => e.id === user.id) ?? toEmployee(user, boot.tradePoints));
+  return toFrontRole(user.role);
+}
 
 type Store = {
   me: Employee;
   loading: boolean;
   requests: WriteOff[];
   employees: Employee[];
-  submit: (d: Draft) => void;
+  products: Product[];
+  tradePoints: TradePoint[];
+  authReady: boolean;
+  login: (email: string, password: string) => Promise<Role>;
+  restoreSession: () => Promise<Role | null>;
+  logout: () => void;
+  transcribe: (audio: Blob) => Promise<{ transcript: string; provider: string }>;
+  extract: (transcript: string) => Promise<Extraction>;
+  submitWriteOff: (input: { fields: CreateFields; photoFile?: File | null }) => Promise<WriteOff>;
   approve: (id: string) => void;
   reject: (id: string, note: string) => void;
   retrySync: (id: string) => void;
@@ -103,70 +196,113 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [requests, setRequests] = useState<WriteOff[]>([]);
   const [employees, setEmployees] = useState<Employee[]>(DEFAULT_EMPLOYEES);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [tradePoints, setTradePoints] = useState<TradePoint[]>([]);
+  const [me, setMe] = useState<Employee | null>(null);
+  const [role, setRole] = useState<Role | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [authReady, setAuthReady] = useState(!api.hasToken());
 
-  // initial load (localStorage now, REST when VITE_VERA_API_URL is set)
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const [rows, emps] = await Promise.all([
-          api.listWriteOffs(),
-          api.listEmployees(DEFAULT_EMPLOYEES),
-        ]);
-        if (!alive) return;
-        EMPLOYEES = emps;
-        setEmployees(emps);
-        setRequests(rows);
-      } finally {
-        if (alive) setLoading(false);
+  const refresh = useCallback(async (forRole?: Role) => {
+    const r = forRole ?? role;
+    if (!r) return;
+    setRequests(await api.listWriteOffs(r));
+  }, [role]);
+
+  const login = useCallback(async (email: string, password: string): Promise<Role> => {
+    setLoading(true);
+    try {
+      const user = await api.login(email, password);
+      const boot = await api.bootstrap();
+      const frontRole = applyBootstrap(user, boot, { setEmployees, setProducts, setTradePoints, setMe });
+      setRole(frontRole);
+      await refresh(frontRole);
+      return frontRole;
+    } finally {
+      setLoading(false);
+      setAuthReady(true);
+    }
+  }, [refresh]);
+
+  const restoreSession = useCallback(async (): Promise<Role | null> => {
+    if (!api.hasToken()) {
+      setAuthReady(true);
+      return null;
+    }
+    setLoading(true);
+    try {
+      const user = await api.me();
+      const boot = await api.bootstrap();
+      const frontRole = applyBootstrap(user, boot, { setEmployees, setProducts, setTradePoints, setMe });
+      setRole(frontRole);
+      await refresh(frontRole);
+      return frontRole;
+    } catch {
+      api.logout();
+      setMe(null);
+      setRole(null);
+      setRequests([]);
+      return null;
+    } finally {
+      setLoading(false);
+      setAuthReady(true);
+    }
+  }, [refresh]);
+
+  const logout = useCallback(() => {
+    api.logout();
+    setMe(null);
+    setRole(null);
+    setRequests([]);
+  }, []);
+
+  const transcribe = useCallback((audio: Blob) => api.transcribe(audio), []);
+  const extract = useCallback((transcript: string) => api.extract(transcript), []);
+
+  // Full lifecycle: create -> (photo upload) -> submit -> refresh.
+  const submitWriteOff = useCallback(
+    async ({ fields, photoFile }: { fields: CreateFields; photoFile?: File | null }): Promise<WriteOff> => {
+      const payload: CreateFields = { ...fields };
+      if (payload.deductionType === "with_deduction" && !payload.deductionEmployeeId && me) {
+        payload.deductionEmployeeId = me.id;
       }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const submit = useCallback((d: Draft) => {
-    const wo: WriteOff = {
-      ...d,
-      id: crypto.randomUUID(),
-      doc: nextDoc(),
-      employeeId: "e1",
-      createdAt: Date.now(),
-      status: "pending",
-      sync: "idle",
-    };
-    setRequests((r) => [wo, ...r]);
-    void api.createWriteOff(wo);
-  }, []);
+      let result = await api.createWriteOff(payload);
+      if (photoFile) result = await api.uploadPhoto(result.id, photoFile);
+      try {
+        result = await api.submit(result.id);
+      } catch (error) {
+        await refresh();
+        if (error instanceof ApiError && error.status === 422) {
+          const detailFields = (error.details as { missingFields?: string[] } | undefined)?.missingFields ?? [];
+          const labels = detailFields.length ? detailFields.map(missingFieldLabel) : (result.ui?.missingFieldLabels ?? []);
+          throw new Error(`Please add missing details: ${labels.length ? labels.join(", ") : "required fields"}.`);
+        }
+        throw error;
+      }
+      await refresh();
+      return result;
+    },
+    [me, refresh],
+  );
 
   const approve = useCallback((id: string) => {
     setRequests((r) => r.map((w) => (w.id === id ? { ...w, status: "approved", sync: "syncing" } : w)));
-    void api.updateWriteOff(id, { status: "approved", sync: "syncing" });
-    void api.requestSync(id).then((sync) => {
-      setRequests((r) => r.map((w) => (w.id === id ? { ...w, sync } : w)));
-      void api.updateWriteOff(id, { sync });
-    });
-  }, []);
+    void api.approve(id).finally(() => refresh());
+  }, [refresh]);
 
   const reject = useCallback((id: string, note: string) => {
     setRequests((r) => r.map((w) => (w.id === id ? { ...w, status: "rejected", reviewerNote: note } : w)));
-    void api.updateWriteOff(id, { status: "rejected", reviewerNote: note });
-  }, []);
+    void api.reject(id, note).finally(() => refresh());
+  }, [refresh]);
 
   const retrySync = useCallback((id: string) => {
     setRequests((r) => r.map((w) => (w.id === id ? { ...w, sync: "syncing" } : w)));
-    void api.updateWriteOff(id, { sync: "syncing" });
-    void api.requestSync(id).then((sync) => {
-      setRequests((r) => r.map((w) => (w.id === id ? { ...w, sync } : w)));
-      void api.updateWriteOff(id, { sync });
-    });
-  }, []);
+    void api.retrySync(id).finally(() => refresh());
+  }, [refresh]);
 
   const value = useMemo<Store>(
-    () => ({ me: employees[0], loading, requests, employees, submit, approve, reject, retrySync }),
-    [employees, loading, requests, submit, approve, reject, retrySync]
+    () => ({ me: me ?? DEFAULT_EMPLOYEES[0], loading, requests, employees, products, tradePoints, authReady, login, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync }),
+    [me, loading, requests, employees, products, tradePoints, authReady, login, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

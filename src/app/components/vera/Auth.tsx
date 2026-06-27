@@ -3,24 +3,40 @@ import { motion, AnimatePresence } from "motion/react";
 import { Microphone, ShieldCheck, ArrowRight } from "./icons";
 import { VeraLogo } from "./brand";
 import type { Role } from "./store";
+import { useStore } from "./store";
 import { LANGS, translate, type Lang } from "./i18n";
-import "./seed";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
 export function Auth({ onPick }: { onPick: (r: Role) => void }) {
+  const { login } = useStore();
   const [step, setStep] = useState<"signin" | "role">("signin");
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [focus, setFocus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [lang, setLangLocal] = useState<Lang>(() => {
     try { return (localStorage.getItem("vera.lang") as Lang) || "ru"; } catch { return "ru"; }
   });
   const t = (k: string) => translate(k, lang);
   const setLang = (l: Lang) => { try { localStorage.setItem("vera.lang", l); } catch {} setLangLocal(l); };
-  const valid = name.trim().length >= 2 && code.trim().length >= 4;
+  const valid = /\S+@\S+\.\S+/.test(email.trim()) && password.length >= 1 && !busy;
 
-  const go = () => { try { localStorage.setItem("vera.user", name.trim()); } catch {} setStep("role"); };
+  const go = async () => {
+    if (!valid) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const role = await login(email.trim().toLowerCase(), password);
+      try { localStorage.setItem("vera.user", email.trim()); } catch {}
+      onPick(role);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("signinError"));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="relative w-full min-h-[100dvh] overflow-hidden flex flex-col bg-[var(--vera-cocoa)] text-[var(--vera-accent-cream)]">
@@ -45,7 +61,7 @@ export function Auth({ onPick }: { onPick: (r: Role) => void }) {
             {step === "signin" ? t("welcome") : `${t("chooseRole")}`}
           </h1>
           <p className="mt-1.5 text-[14px] text-[var(--vera-accent-cream)]/85">
-            {step === "signin" ? t("signinSub") : (name.trim().split(" ")[0] || "")}
+            {step === "signin" ? t("signinSub") : (email.trim().split("@")[0] || "")}
           </p>
         </motion.div>
       </div>
@@ -56,8 +72,8 @@ export function Auth({ onPick }: { onPick: (r: Role) => void }) {
             <motion.div key="signin" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.35, ease }} className="flex-1 flex flex-col">
               <div className="flex flex-col gap-4">
                 {[
-                  { id: "name", label: t("fullName"), val: name, set: setName, ph: t("namePh"), type: "text" },
-                  { id: "code", label: t("accessCode"), val: code, set: setCode, ph: t("codePh"), type: "password" },
+                  { id: "email", label: t("emailLabel"), val: email, set: setEmail, ph: t("emailPh"), type: "email" },
+                  { id: "password", label: t("passwordLabel"), val: password, set: setPassword, ph: t("passwordPh"), type: "password" },
                 ].map((f) => (
                   <label key={f.id} className="flex flex-col gap-1.5">
                     <span className="text-[12px] font-medium text-[var(--vera-brown-gray)]">{f.label}</span>
@@ -73,13 +89,20 @@ export function Auth({ onPick }: { onPick: (r: Role) => void }) {
                         onBlur={() => setFocus(null)}
                         placeholder={f.ph}
                         type={f.type}
-                        inputMode={f.id === "code" ? "numeric" : undefined}
+                        autoComplete={f.id === "email" ? "username" : "current-password"}
+                        inputMode={f.id === "email" ? "email" : undefined}
                         className="w-full bg-transparent px-4 py-3.5 outline-none text-[15px]"
                       />
                     </motion.div>
                   </label>
                 ))}
               </div>
+
+              {error && (
+                <p className="mt-3 rounded-xl bg-[var(--vera-blush)] px-3.5 py-2.5 text-[12.5px] font-medium text-[var(--vera-strawberry)]">
+                  {error}
+                </p>
+              )}
 
               <div className="mt-auto pt-7">
                 <motion.button

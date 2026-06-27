@@ -4,7 +4,7 @@ import { writeFile } from "node:fs/promises";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
-import { seedDemo } from "../src/seed";
+import { seedDemo, seedDemoIdempotent } from "../src/seed";
 
 process.env.DATABASE_URL ??= "file:./test.db";
 
@@ -85,6 +85,17 @@ describe("VERA backend MVP", () => {
 
     expect(res.body.provider).toBe("mock");
     expect(res.body.ok).toBe(true);
+  });
+
+  it("accepts mockTranscript without an audio upload", async () => {
+    const res = await request(app)
+      .post("/api/write-offs/transcribe")
+      .set(employee)
+      .send({ mockTranscript: "Списать 2 круассана на Достык, без удержания." })
+      .expect(200);
+
+    expect(res.body.transcript).toContain("круассана");
+    expect(res.body.provider).toBe("mock_input");
   });
 
   it("extracts structured fields and missing fields from an incomplete transcript", async () => {
@@ -240,6 +251,31 @@ describe("VERA backend MVP", () => {
   it("requires authentication for bootstrap data", async () => {
     await request(app).get("/api/bootstrap").expect(401);
     await request(app).get("/api/bootstrap").set(employee).expect(200);
+  });
+
+  it("keeps user-created write-offs when idempotent seed runs again", async () => {
+    await prisma.writeOffRequest.create({
+      data: {
+        id: "wo-user-created-preserved",
+        doc: "WO-PRESERVE-1",
+        createdByUserId: "u-employee-aigerim",
+        tradePointId: "tp-aktau",
+        productId: "p-croissants",
+        quantity: 1,
+        unit: "pcs",
+        reason: "Manual user-created request should survive seed",
+        deductionType: "without_deduction",
+        comment: "Manual user-created request should survive idempotent seed.",
+        photoUrl: "https://example.com/preserve.jpg",
+        status: "pending_review",
+        costEstimate: 315,
+      },
+    });
+
+    await seedDemoIdempotent(prisma);
+
+    const preserved = await prisma.writeOffRequest.findUnique({ where: { id: "wo-user-created-preserved" } });
+    expect(preserved?.doc).toBe("WO-PRESERVE-1");
   });
 
   it("filters reviewer queue by status and trade point", async () => {

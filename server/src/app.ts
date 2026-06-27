@@ -3,6 +3,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import multer from "multer";
+import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
@@ -145,7 +146,21 @@ export function createApp(options: AppOptions = {}) {
   const app = express();
 
   app.set("trust proxy", 1);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+          imgSrc: ["'self'", "data:", "blob:", "https:"],
+          mediaSrc: ["'self'", "data:", "blob:"],
+          connectSrc: ["'self'", "https:"],
+          objectSrc: ["'none'"],
+        },
+      },
+    }),
+  );
   app.use(cors(getCorsOptions()));
   app.use(express.json({ limit: "2mb" }));
 
@@ -654,6 +669,19 @@ export function createApp(options: AppOptions = {}) {
       next(error);
     }
   });
+
+  const distDir = path.resolve(process.cwd(), "dist");
+  const indexHtml = path.join(distDir, "index.html");
+  if (existsSync(indexHtml)) {
+    app.use(express.static(distDir));
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api/") || req.path.startsWith("/uploads/")) {
+        next();
+        return;
+      }
+      res.sendFile(indexHtml);
+    });
+  }
 
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     sendError(res, error);

@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+const emptyToUndefined = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 || trimmed === "..." ? undefined : trimmed;
+};
+
+const optionalUrl = z.preprocess(emptyToUndefined, z.string().url().optional());
+const optionalString = z.preprocess(emptyToUndefined, z.string().optional());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -10,21 +19,21 @@ const envSchema = z.object({
   ALLOW_DEMO_HEADER: z.enum(["true", "false"]).default("false"),
   STORAGE_ADAPTER: z.enum(["local", "s3"]).default("local"),
   ACCEPT_LOCAL_STORAGE_IN_PRODUCTION: z.enum(["true", "false"]).default("false"),
-  STORAGE_LOCAL_PUBLIC_BASE_URL: z.string().optional(),
-  S3_ENDPOINT: z.string().url().optional(),
+  STORAGE_LOCAL_PUBLIC_BASE_URL: optionalString,
+  S3_ENDPOINT: optionalUrl,
   S3_REGION: z.string().default("auto"),
-  S3_BUCKET: z.string().optional(),
-  S3_ACCESS_KEY_ID: z.string().optional(),
-  S3_SECRET_ACCESS_KEY: z.string().optional(),
-  S3_PUBLIC_BASE_URL: z.string().url().optional(),
+  S3_BUCKET: optionalString,
+  S3_ACCESS_KEY_ID: optionalString,
+  S3_SECRET_ACCESS_KEY: optionalString,
+  S3_PUBLIC_BASE_URL: optionalUrl,
   AI_PROVIDER: z.enum(["mock", "gemini"]).default("mock"),
-  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: optionalString,
   GEMINI_MODEL: z.string().default("gemini-3.1-flash-lite"),
   GEMINI_BASE_URL: z.string().url().default("https://generativelanguage.googleapis.com"),
   IIKO_ADAPTER: z.enum(["mock", "real"]).default("mock"),
   IIKO_BASE_URL: z.string().url().default("https://api-ru.iiko.services"),
-  IIKO_API_LOGIN: z.string().optional(),
-  IIKO_ORGANIZATION_ID: z.string().optional(),
+  IIKO_API_LOGIN: optionalString,
+  IIKO_ORGANIZATION_ID: optionalString,
 });
 
 export type AppConfig = z.infer<typeof envSchema> & {

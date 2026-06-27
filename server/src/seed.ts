@@ -34,6 +34,8 @@ export const demoProducts = [
 ];
 
 async function createEvent(prisma: PrismaClient, requestId: string, eventType: string, toStatus: string, actorUserId = "u-employee-aigerim") {
+  const existing = await prisma.requestEvent.findFirst({ where: { requestId, eventType, toStatus } });
+  if (existing) return;
   await prisma.requestEvent.create({
     data: {
       requestId,
@@ -45,25 +47,35 @@ async function createEvent(prisma: PrismaClient, requestId: string, eventType: s
   });
 }
 
-export async function seedDemo(prisma: PrismaClient) {
-  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DESTRUCTIVE_SEED !== "true") {
-    throw new Error(
-      "Refusing to run the destructive demo seed in production. Set ALLOW_DESTRUCTIVE_SEED=true to override (this wipes all data).",
-    );
+async function seedReferenceData(prisma: PrismaClient) {
+  const passwordHash = await hashPassword(demoPassword);
+
+  for (const tradePoint of demoTradePoints) {
+    await prisma.tradePoint.upsert({
+      where: { id: tradePoint.id },
+      create: tradePoint,
+      update: tradePoint,
+    });
   }
 
-  await prisma.iikoSyncLog.deleteMany();
-  await prisma.requestEvent.deleteMany();
-  await prisma.writeOffRequest.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.tradePoint.deleteMany();
+  for (const product of demoProducts) {
+    await prisma.product.upsert({
+      where: { id: product.id },
+      create: product,
+      update: product,
+    });
+  }
 
-  await prisma.tradePoint.createMany({ data: demoTradePoints });
-  await prisma.product.createMany({ data: demoProducts });
-  const passwordHash = await hashPassword(demoPassword);
-  await prisma.user.createMany({ data: demoUsers.map((user) => ({ ...user, passwordHash })) });
+  for (const user of demoUsers) {
+    await prisma.user.upsert({
+      where: { id: user.id },
+      create: { ...user, passwordHash },
+      update: { ...user, passwordHash },
+    });
+  }
+}
 
+async function seedSampleWriteOffs(prisma: PrismaClient) {
   const now = Date.now();
   const requests = [
     {
@@ -168,8 +180,14 @@ export async function seedDemo(prisma: PrismaClient) {
   ];
 
   for (const request of requests) {
-    await prisma.writeOffRequest.create({
-      data: {
+    await prisma.writeOffRequest.upsert({
+      where: { id: request.id },
+      create: {
+        ...request,
+        aiExtractedFieldsJson: "{}",
+        missingFieldsJson: "[]",
+      },
+      update: {
         ...request,
         aiExtractedFieldsJson: "{}",
         missingFieldsJson: "[]",
@@ -181,30 +199,60 @@ export async function seedDemo(prisma: PrismaClient) {
     }
   }
 
-  await prisma.iikoSyncLog.create({
-    data: {
-      requestId: "wo-synced-croissants",
-      status: "synced",
-      payloadJson: JSON.stringify({ departmentId: "iiko-dept-aktau", items: [{ productId: "iiko-product-croissants", amount: 6, unit: "pcs" }] }),
-      responseJson: JSON.stringify({ status: "synced", iikoDocumentId: "WR-2026-20482" }),
-      iikoDocumentId: "WR-2026-20482",
-    },
-  });
+  const syncedLog = await prisma.iikoSyncLog.findFirst({ where: { requestId: "wo-synced-croissants", status: "synced" } });
+  if (!syncedLog) {
+    await prisma.iikoSyncLog.create({
+      data: {
+        requestId: "wo-synced-croissants",
+        status: "synced",
+        payloadJson: JSON.stringify({ departmentId: "iiko-dept-aktau", items: [{ productId: "iiko-product-croissants", amount: 6, unit: "pcs" }] }),
+        responseJson: JSON.stringify({ status: "synced", iikoDocumentId: "WR-2026-20482" }),
+        iikoDocumentId: "WR-2026-20482",
+      },
+    });
+  }
 
-  await prisma.iikoSyncLog.create({
-    data: {
-      requestId: "wo-failed-caesar",
-      status: "failed",
-      payloadJson: JSON.stringify({ departmentId: "iiko-dept-aktau", items: [{ productId: "iiko-product-caesar-bowls", amount: 5, unit: "pcs" }] }),
-      errorMessage: "Mock Iiko sync failed by request content",
-    },
-  });
+  const failedLog = await prisma.iikoSyncLog.findFirst({ where: { requestId: "wo-failed-caesar", status: "failed" } });
+  if (!failedLog) {
+    await prisma.iikoSyncLog.create({
+      data: {
+        requestId: "wo-failed-caesar",
+        status: "failed",
+        payloadJson: JSON.stringify({ departmentId: "iiko-dept-aktau", items: [{ productId: "iiko-product-caesar-bowls", amount: 5, unit: "pcs" }] }),
+        errorMessage: "Mock Iiko sync failed by request content",
+      },
+    });
+  }
+}
+
+export async function seedDemo(prisma: PrismaClient) {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DESTRUCTIVE_SEED !== "true") {
+    throw new Error(
+      "Refusing to run the destructive demo seed in production. Set ALLOW_DESTRUCTIVE_SEED=true to override (this wipes all data).",
+    );
+  }
+
+  await prisma.iikoSyncLog.deleteMany();
+  await prisma.requestEvent.deleteMany();
+  await prisma.writeOffRequest.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.tradePoint.deleteMany();
+
+  await seedReferenceData(prisma);
+  await seedSampleWriteOffs(prisma);
+}
+
+export async function seedDemoIdempotent(prisma: PrismaClient) {
+  await seedReferenceData(prisma);
+  await seedSampleWriteOffs(prisma);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  seedDemo(getPrisma())
+  const seed = process.env.SEED_MODE === "reset" || process.env.ALLOW_DESTRUCTIVE_SEED === "true" ? seedDemo : seedDemoIdempotent;
+  seed(getPrisma())
     .then(() => {
-      console.log("VERA demo database seeded");
+      console.log(process.env.SEED_MODE === "reset" || process.env.ALLOW_DESTRUCTIVE_SEED === "true" ? "VERA demo database reset and seeded" : "VERA demo reference data is ready");
     })
     .finally(async () => {
       await getPrisma().$disconnect();

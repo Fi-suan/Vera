@@ -9,15 +9,18 @@
     "start": "node --import tsx server/src/index.ts",
     "server:dev": "node --import tsx --watch server/src/index.ts",
     "server:start": "node --import tsx server/src/index.ts",
-    "server:db:push": "DATABASE_URL=\"file:./dev.db\" prisma db push",
-    "server:db:setup": "DATABASE_URL=\"file:./dev.db\" node --import tsx server/src/setup-db.ts",
-    "server:seed": "DATABASE_URL=\"file:./dev.db\" node --import tsx server/src/seed.ts",
+    "server:sqlite:generate": "prisma generate --schema prisma/schema.prisma",
+    "server:db:push": "DATABASE_URL=\"file:./dev.db\" prisma generate --schema prisma/schema.prisma && DATABASE_URL=\"file:./dev.db\" prisma db push --schema prisma/schema.prisma",
+    "server:db:setup": "DATABASE_URL=\"file:./dev.db\" prisma generate --schema prisma/schema.prisma && DATABASE_URL=\"file:./dev.db\" node --import tsx server/src/setup-db.ts",
+    "server:seed": "DATABASE_URL=\"file:./dev.db\" prisma generate --schema prisma/schema.prisma && DATABASE_URL=\"file:./dev.db\" node --import tsx server/src/seed.ts",
+    "server:seed:reset": "DATABASE_URL=\"file:./dev.db\" prisma generate --schema prisma/schema.prisma && DATABASE_URL=\"file:./dev.db\" SEED_MODE=reset node --import tsx server/src/seed.ts",
     "server:pg:generate": "prisma generate --schema prisma/postgres/schema.prisma",
     "server:pg:migrate:deploy": "prisma migrate deploy --schema prisma/postgres/schema.prisma",
     "server:pg:migrate:dev": "prisma migrate dev --schema prisma/postgres/schema.prisma",
     "server:pg:seed": "node --import tsx server/src/seed.ts",
+    "server:verify-demo": "node --import tsx server/src/verify-demo.ts",
     "server:deploy:prepare": "node --import tsx server/src/setup-db.ts",
-    "server:test": "DATABASE_URL=\"file:./test.db\" node --import tsx server/src/setup-db.ts && DATABASE_URL=\"file:./test.db\" vitest run server/tests"
+    "server:test": "DATABASE_URL=\"file:./test.db\" AI_PROVIDER=mock IIKO_ADAPTER=mock STORAGE_ADAPTER=local STORAGE_LOCAL_PUBLIC_BASE_URL=\"\" prisma generate --schema prisma/schema.prisma && DATABASE_URL=\"file:./test.db\" AI_PROVIDER=mock IIKO_ADAPTER=mock STORAGE_ADAPTER=local STORAGE_LOCAL_PUBLIC_BASE_URL=\"\" node --import tsx server/src/setup-db.ts && DATABASE_URL=\"file:./test.db\" AI_PROVIDER=mock IIKO_ADAPTER=mock STORAGE_ADAPTER=local STORAGE_LOCAL_PUBLIC_BASE_URL=\"\" vitest run server/tests"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
