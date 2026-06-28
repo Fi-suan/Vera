@@ -24,6 +24,7 @@ import {
   rejectSchema,
   reviewerListSchema,
   transcribeSchema,
+  updateMeSchema,
   validateReadyForReview,
 } from "./validation";
 import { syncToIiko, testIikoConnection } from "./iiko";
@@ -270,6 +271,24 @@ export function createApp(options: AppOptions = {}) {
     try {
       const user = requireAuth(req);
       res.json({ user: publicUser(user) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch("/api/me", async (req, res, next) => {
+    try {
+      const user = requireAuth(req);
+      const body = updateMeSchema.parse(req.body);
+      if (body.tradePointId) {
+        const tradePoint = await prisma.tradePoint.findUnique({ where: { id: body.tradePointId } });
+        if (!tradePoint) throw new HttpError(400, "Unknown trade point");
+      }
+      const data: { name?: string; tradePointId?: string | null } = {};
+      if (body.name !== undefined) data.name = body.name;
+      if (body.tradePointId !== undefined) data.tradePointId = body.tradePointId;
+      const updated = await prisma.user.update({ where: { id: user.id }, data });
+      res.json({ user: publicUser(updated) });
     } catch (error) {
       next(error);
     }

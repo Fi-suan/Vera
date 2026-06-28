@@ -222,6 +222,15 @@ export const api = {
     return data.user;
   },
 
+  /** Update the signed-in user's own profile (name and/or home trade point). */
+  async updateMe(input: { name?: string; tradePointId?: string | null }): Promise<BackendUser> {
+    const data = await req<{ user: BackendUser }>("/me", {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+    return data.user;
+  },
+
   logout() {
     setToken(null);
   },

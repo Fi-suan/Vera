@@ -21,7 +21,7 @@ export type Status = "pending" | "approved" | "rejected";
 export type Sync = "idle" | "syncing" | "synced" | "failed";
 export type Category = "Meat" | "Dairy" | "Bakery" | "Produce" | "Seafood" | "Prepared";
 
-export type Employee = { id: string; name: string; role: string; point: string; hue: number };
+export type Employee = { id: string; name: string; role: string; point: string; hue: number; tradePointId?: string | null };
 export type Product = { id: string; name: string; category: Category; unit: string; cost: number };
 
 /* Rich presentation block produced by the backend serializer
@@ -117,7 +117,7 @@ type BackendTradePoint = { id: string; name: string };
 
 function toEmployee(user: BackendUser, tradePoints: BackendTradePoint[]): Employee {
   const point = tradePoints.find((t) => t.id === user.tradePointId)?.name ?? "—";
-  return { id: user.id, name: user.name, role: user.role, point, hue: hueFromId(user.id) };
+  return { id: user.id, name: user.name, role: user.role, point, hue: hueFromId(user.id), tradePointId: user.tradePointId ?? null };
 }
 
 const toFrontRole = (backendRole: string): Role => (backendRole === "employee" ? "employee" : "manager");
@@ -179,6 +179,7 @@ type Store = {
   authReady: boolean;
   login: (email: string, password: string) => Promise<Role>;
   register: (input: { name: string; email: string; password: string; role: Role }) => Promise<Role>;
+  updateMe: (input: { name?: string; tradePointId?: string | null }) => Promise<void>;
   restoreSession: () => Promise<Role | null>;
   logout: () => void;
   transcribe: (audio: Blob) => Promise<{ transcript: string; provider: string }>;
@@ -241,6 +242,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setAuthReady(true);
     }
   }, [refresh]);
+
+  const updateMe = useCallback(async (input: { name?: string; tradePointId?: string | null }): Promise<void> => {
+    const updated = await api.updateMe(input);
+    setMe(toEmployee(updated, tradePoints));
+  }, [tradePoints]);
 
   const restoreSession = useCallback(async (): Promise<Role | null> => {
     if (!api.hasToken()) {
@@ -319,8 +325,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const value = useMemo<Store>(
-    () => ({ me: me ?? DEFAULT_EMPLOYEES[0], loading, requests, employees, products, tradePoints, authReady, login, register, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync }),
-    [me, loading, requests, employees, products, tradePoints, authReady, login, register, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync]
+    () => ({ me: me ?? DEFAULT_EMPLOYEES[0], loading, requests, employees, products, tradePoints, authReady, login, register, updateMe, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync }),
+    [me, loading, requests, employees, products, tradePoints, authReady, login, register, updateMe, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

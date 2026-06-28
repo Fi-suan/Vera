@@ -16,7 +16,7 @@ import {
 import type { Extraction, CreateFields } from "./api";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { translate as T } from "./i18n";
-import { getPrefs, setPref, haptic, getHomePoint, setHomePoint } from "./prefs";
+import { getPrefs, setPref, haptic } from "./prefs";
 
 const navItems = (): NavItem[] => [
   { id: "home", label: T("home"), Icon: House },
@@ -400,11 +400,11 @@ function Products() {
 }
 
 function Profile({ onExit }: { onExit: () => void }) {
-  const { me, requests, tradePoints } = useStore();
+  const { me, requests, tradePoints, updateMe } = useStore();
   const mine = requests.filter((r) => r.employeeId === me.id);
   const total = mine.reduce((s, r) => s + r.loss, 0);
   const [opts, setOpts] = useState(getPrefs);
-  const [homePoint, setHomePointState] = useState(getHomePoint);
+  const [savingPoint, setSavingPoint] = useState(false);
 
   return (
     <div className="px-5 max-w-2xl">
@@ -437,12 +437,13 @@ function Profile({ onExit }: { onExit: () => void }) {
           <p className="text-[13px] text-[var(--vera-rose-gray)]">{T("yourTradePointSub")}</p>
           <div className="mt-3 flex flex-wrap gap-2.5">
             {tradePoints.map((tp) => {
-              const on = homePoint === tp.id;
+              const on = me.tradePointId === tp.id;
               return (
                 <button
                   key={tp.id}
-                  onClick={() => { const next = on ? null : tp.id; setHomePoint(next); setHomePointState(next); }}
-                  className={`rounded-full px-4 py-2.5 text-[14px] font-semibold transition-colors ${on ? "bg-[var(--vera-strawberry)] text-[var(--vera-accent-cream)]" : "bg-white/70 text-[var(--vera-cocoa)] border border-[#f0d8cf]"}`}
+                  disabled={savingPoint}
+                  onClick={() => { const next = on ? null : tp.id; setSavingPoint(true); updateMe({ tradePointId: next }).finally(() => setSavingPoint(false)); }}
+                  className={`rounded-full px-4 py-2.5 text-[14px] font-semibold transition-colors disabled:opacity-60 ${on ? "bg-[var(--vera-strawberry)] text-[var(--vera-accent-cream)]" : "bg-white/70 text-[var(--vera-cocoa)] border border-[#f0d8cf]"}`}
                 >
                   {tp.name}
                 </button>
@@ -499,11 +500,12 @@ const PROGRESS: Record<Step, number> = { record: 1, transcript: 2, extract: 3, m
 function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () => void }) {
   const store = useStore();
   const [prefs] = useState(getPrefs);
-  // The employee's saved default trade point, validated against the live catalog.
+  // The employee's saved default trade point (from their account), validated
+  // against the live catalog.
   const homePointId = useMemo(() => {
-    const h = getHomePoint();
+    const h = store.me.tradePointId ?? null;
     return h && store.tradePoints.some((t) => t.id === h) ? h : null;
-  }, [store.tradePoints]);
+  }, [store.me.tradePointId, store.tradePoints]);
   const [step, setStep] = useState<Step>("record");
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);

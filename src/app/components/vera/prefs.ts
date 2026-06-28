@@ -27,28 +27,6 @@ export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): Prefs {
   return next;
 }
 
-/* The employee's default trade point. Stored client-side (the backend has no
-   profile-update endpoint), and used to pre-fill the capture flow. The real
-   tradePointId still travels to the backend with every write-off. */
-const POINT_KEY = "vera.homePoint";
-
-export function getHomePoint(): string | null {
-  try {
-    return localStorage.getItem(POINT_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function setHomePoint(id: string | null) {
-  try {
-    if (id) localStorage.setItem(POINT_KEY, id);
-    else localStorage.removeItem(POINT_KEY);
-  } catch {
-    /* storage unavailable */
-  }
-}
-
 /** Vibrate, but only when the user has haptics enabled and the device supports it. */
 export function haptic(pattern: number | number[] = 8) {
   if (getPrefs().haptics && typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
