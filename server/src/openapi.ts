@@ -374,7 +374,14 @@ function schemas() {
       properties: { transcript: { type: "string" }, provider: { type: "string" } },
       required: ["transcript", "provider"],
     },
-    ExtractRequest: { type: "object", properties: { transcript: { type: "string" } }, required: ["transcript"] },
+    ExtractRequest: {
+      type: "object",
+      properties: {
+        transcript: { type: "string" },
+        lang: { type: "string", enum: ["ru", "kz", "en"], default: "ru" },
+      },
+      required: ["transcript"],
+    },
     ExtractionResponse: {
       type: "object",
       properties: {

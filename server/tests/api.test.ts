@@ -50,6 +50,7 @@ describe("VERA backend MVP", () => {
     expect(spec.body.paths["/ready"]).toBeTruthy();
     expect(spec.body.paths["/auth/login"]).toBeTruthy();
     expect(spec.body.paths["/me"]?.patch).toBeTruthy();
+    expect(spec.body.components.schemas.ExtractRequest.properties.lang.enum).toEqual(["ru", "kz", "en"]);
     expect(spec.body.paths["/write-offs/{id}/approve"]).toBeTruthy();
     expect(spec.body.paths["/iiko/test-connection"]).toBeTruthy();
 
@@ -118,13 +119,14 @@ describe("VERA backend MVP", () => {
     const res = await request(app)
       .post("/api/write-offs/extract")
       .set(employee)
-      .send({ transcript: "Списать 2 чизбургера курица х2 на Turan 55d, ошибочный заказ, без удержания" })
+      .send({ transcript: "Списать 2 чизбургера курица х2 на Turan 55d, ошибочный заказ, без удержания", lang: "ru" })
       .expect(200);
 
     expect(res.body.productId).toBe("p-bahandi-p008");
     expect(res.body.tradePointId).toBe("tp-bahandi-turan-55d");
     expect(res.body.quantity).toBe(2);
     expect(res.body.deductionType).toBe("without_deduction");
+    expect(res.body.comment).toContain("нужно списать");
   });
 
   it("keeps incomplete requests in missing_info and rejects submit until photo is attached", async () => {

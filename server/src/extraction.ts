@@ -5,6 +5,7 @@ import { HttpError } from "./http";
 import { validateReadyForReview } from "./validation";
 
 type AiProvider = "mock" | "gemini";
+type ExtractLang = "ru" | "kz" | "en";
 
 type Catalog = {
   products: Product[];
@@ -201,11 +202,31 @@ function buildMissingFields(input: {
   }).filter((field: string) => field !== "photoUrl");
 }
 
+function languageName(lang: ExtractLang) {
+  if (lang === "kz") return "Kazakh";
+  if (lang === "en") return "English";
+  return "Russian";
+}
+
+function fallbackComment(lang: ExtractLang, input: { quantity: number | null; unit: string | null; productName: string | null; reason: string }) {
+  const subject = input.productName ?? (lang === "en" ? "Product" : lang === "kz" ? "Тауар" : "Товар");
+  const qty = input.quantity ? `${input.quantity} ${input.unit ?? ""} `.trimEnd() + " " : "";
+  const reason = input.reason.toLowerCase();
+  if (lang === "kz") {
+    return `${qty}${subject} есептен шығарылуы керек: ${reason}.`;
+  }
+  if (lang === "en") {
+    return `${qty}${subject} should be written off: ${reason}.`;
+  }
+  return `${qty}${subject} нужно списать: ${reason}.`;
+}
+
 function reconcileExtraction(
   catalog: Catalog,
   transcript: string,
   raw: z.infer<typeof geminiExtractionSchema>,
   provider: AiProvider,
+  lang: ExtractLang,
 ) {
   const product = findProduct(catalog, raw.productName, transcript);
   const tradePoint = findTradePoint(catalog, raw.tradePointName, transcript);
@@ -214,11 +235,7 @@ function reconcileExtraction(
   const quantity = raw.quantity ?? null;
   const unit = raw.unit ?? product?.unit ?? null;
   const reason = raw.reason ?? extractReason(transcript);
-  const comment =
-    raw.comment ??
-    (quantity
-      ? `${quantity} ${unit ?? ""} ${product?.name ?? productName ?? "product"} should be written off: ${reason.toLowerCase()}.`
-      : `${product?.name ?? productName ?? "Product"} should be written off after manager review: ${reason.toLowerCase()}.`);
+  const comment = raw.comment ?? fallbackComment(lang, { quantity, unit, productName: product?.name ?? productName, reason });
 
   const fields = {
     productId: product?.id ?? null,
@@ -256,7 +273,7 @@ function reconcileExtraction(
   };
 }
 
-function extractWithMock(catalog: Catalog, transcript: string) {
+function extractWithMock(catalog: Catalog, transcript: string, lang: ExtractLang) {
   const lower = transcript.toLowerCase();
   const product = findProduct(catalog, null, transcript);
   const inferredProductName =
@@ -292,6 +309,7 @@ function extractWithMock(catalog: Catalog, transcript: string) {
       confidenceScore: 0.96,
     },
     "mock",
+    lang,
   );
 }
 
@@ -362,7 +380,7 @@ async function callGeminiJson<T>(prompt: string, parts: Array<Record<string, unk
   return JSON.parse(text) as T;
 }
 
-async function extractWithGemini(catalog: Catalog, transcript: string) {
+async function extractWithGemini(catalog: Catalog, transcript: string, lang: ExtractLang) {
   const prompt = [
     "You are VERA, a form-filling assistant for restaurant product write-off requests.",
     "The transcript can be in Russian, Kazakh, English, or a mix. Understand the meaning, but return normalized JSON values.",
@@ -372,7 +390,7 @@ async function extractWithGemini(catalog: Catalog, transcript: string) {
     "Allowed missingFields values: productId, quantity, tradePointId, reason, deductionType, deductionEmployeeId, comment.",
     "Required fields before review: productName/productId, quantity, tradePointName/tradePointId, reason, deductionType, comment.",
     "If deductionType is with_deduction, deductionEmployeeName/deductionEmployeeId is required.",
-    "Return a concise professional English comment suitable for manager review.",
+    `Return the comment in ${languageName(lang)}. Keep it concise and professional for manager review.`,
     "Map phrases like 'без удержания' or 'ұстамай' to without_deduction; 'с удержанием' or 'ұстап қалу' to with_deduction.",
     "",
     `Products: ${catalog.products.map((p) => `${p.name} (${p.unit})`).join(", ")}`,
@@ -383,13 +401,13 @@ async function extractWithGemini(catalog: Catalog, transcript: string) {
   ].join("\n");
 
   const raw = await callGeminiJson<unknown>(prompt, [], geminiJsonSchema());
-  return reconcileExtraction(catalog, transcript, geminiExtractionSchema.parse(raw), "gemini");
+  return reconcileExtraction(catalog, transcript, geminiExtractionSchema.parse(raw), "gemini", lang);
 }
 
-export async function extractWriteOffFields(prisma: PrismaClient, transcript: string) {
+export async function extractWriteOffFields(prisma: PrismaClient, transcript: string, lang: ExtractLang = "ru") {
   const catalog = await getCatalog(prisma);
-  if (getAiProvider() === "gemini") return extractWithGemini(catalog, transcript);
-  return extractWithMock(catalog, transcript);
+  if (getAiProvider() === "gemini") return extractWithGemini(catalog, transcript, lang);
+  return extractWithMock(catalog, transcript, lang);
 }
 
 export async function transcribeAudio(file: { path: string; mimetype: string }) {

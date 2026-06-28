@@ -91,12 +91,12 @@ const D: Dict = {
   noProducts: ["Товаров пока нет — они синхронизируются из бэкенда.", "Тауарлар әзірге жоқ — бэкендтен синхрондалады.", "No products yet — they sync in from your backend."],
   searchProducts: ["Поиск товаров…", "Тауарларды іздеу…", "Search products…"],
   preferences: ["Настройки", "Параметрлер", "Preferences"],
-  switchRole: ["Сменить роль", "Рөлді ауыстыру", "Switch role"],
   writeoffs: ["Списаний", "Списание", "Write-offs"],
   totalLogged: ["Всего списано", "Барлығы", "Total logged"],
   // profile settings
   profileTitle: ["Профиль", "Профиль", "Profile"],
   profileSaveError: ["Не удалось сохранить точку. Попробуйте ещё раз.", "Нүктені сақтау мүмкін болмады. Қайталап көріңіз.", "Could not save the trade point. Try again."],
+  signOut: ["Выйти", "Шығу", "Sign out"],
   haptics: ["Виброотклик", "Дірілмен жауап", "Haptic feedback"],
   hapticsSub: ["Лёгкая вибрация при записи и отправке", "Жазу мен жіберуде діріл", "Subtle buzz on capture and submit"],
   voiceHints: ["Голосовые подсказки", "Дауыс кеңестері", "Voice hints"],
@@ -135,13 +135,32 @@ const D: Dict = {
   syncFailedShort: ["Ошибка синхр.", "Синхр. қатесі", "Sync failed"],
   // shared field labels
   fieldProduct: ["Товар", "Тауар", "Product"],
+  fieldProductName: ["Название товара", "Тауар атауы", "Product name"],
   fieldQuantity: ["Количество", "Саны", "Quantity"],
   fieldTradePoint: ["Точка", "Нүкте", "Trade point"],
   fieldReason: ["Причина", "Себеп", "Reason"],
   fieldDeduction: ["Удержание", "Ұстау", "Deduction"],
+  fieldDeductionEmployee: ["Сотрудник для удержания", "Ұстауға арналған қызметкер", "Employee for deduction"],
+  fieldComment: ["Комментарий", "Түсініктеме", "Comment"],
+  fieldProofPhoto: ["Фото-подтверждение", "Фото-дәлел", "Proof photo"],
+  proofPhotoAlt: ["Фото-подтверждение", "Фото-дәлел", "Proof photo"],
   withDeduction: ["С удержанием", "Ұстаумен", "With deduction"],
   withoutDeduction: ["Без удержания", "Ұстаусыз", "Without deduction"],
   estLoss: ["Оценка потерь", "Болжамды шығын", "Est. loss"],
+  missingDetailsError: ["Добавьте недостающие данные", "Жетпейтін деректерді қосыңыз", "Please add missing details"],
+  requiredFieldsFallback: ["обязательные поля", "міндетті өрістер", "required fields"],
+  // display labels for backend catalog metadata
+  catBurger: ["Бургеры", "Бургерлер", "Burgers"],
+  catSide: ["Гарниры", "Гарнирлер", "Sides"],
+  catCombo: ["Комбо", "Комбо", "Combos"],
+  catDrink: ["Напитки", "Сусындар", "Drinks"],
+  catAddOn: ["Добавки", "Қосымшалар", "Add-ons"],
+  catPrepared: ["Готовое", "Дайын өнім", "Prepared"],
+  unitPcs: ["шт", "дана", "pcs"],
+  unitBottle: ["бут.", "бөт.", "btl"],
+  unitPack: ["уп.", "қапт.", "pack"],
+  unitCup: ["стакан", "стақан", "cup"],
+  unitPortion: ["порция", "порция", "portion"],
   // capture flow — record
   listening: ["Слушаю…", "Тыңдап тұрмын…", "Listening…"],
   tellVera: ["Расскажите VERA, что случилось", "VERA-ға не болғанын айтыңыз", "Tell VERA what happened"],
@@ -224,6 +243,8 @@ const D: Dict = {
   approvedLabel: ["Одобрено", "Мақұлданды", "Approved"],
   unknownEmployee: ["Неизвестный сотрудник", "Белгісіз қызметкер", "Unknown employee"],
   unknownStatus: ["Неизвестный статус", "Белгісіз мәртебе", "Unknown status"],
+  introTagline: ["Говорите · Структурируйте · Проверяйте", "Айтыңыз · Құрылымдаңыз · Тексеріңіз", "Speak · Structure · Verify"],
+  skipIntro: ["Пропустить", "Өткізу", "Skip"],
   // backend status -> localized chip label
   stDraft: ["Черновик", "Жоба", "Draft"],
   stMissingInfo: ["Не хватает данных", "Деректер жетіспейді", "Missing info"],
@@ -272,6 +293,41 @@ export function localeForLang(lang: Lang = currentLang()): string {
 export function translate(key: string, lang: Lang = liveLang()): string {
   const row = D[key];
   return row ? row[idx[lang]] : key;
+}
+
+const CATEGORY_KEY: Record<string, string> = {
+  Burger: "catBurger",
+  Side: "catSide",
+  Combo: "catCombo",
+  Drink: "catDrink",
+  "Add-on": "catAddOn",
+  Prepared: "catPrepared",
+};
+
+const UNIT_KEY: Record<string, string> = {
+  pcs: "unitPcs",
+  bottle: "unitBottle",
+  pack: "unitPack",
+  cup: "unitCup",
+  portion: "unitPortion",
+};
+
+export function categoryLabel(category: string, lang: Lang = liveLang()) {
+  const key = CATEGORY_KEY[category];
+  return key ? translate(key, lang) : category;
+}
+
+export function unitLabel(unit?: string | null, lang: Lang = liveLang()) {
+  if (!unit) return "";
+  const key = UNIT_KEY[unit];
+  return key ? translate(key, lang) : unit;
+}
+
+export function quantityLabel(quantity?: number | null, unit?: string | null, lang: Lang = liveLang()) {
+  if (quantity == null) return "—";
+  const localizedUnit = unitLabel(unit, lang);
+  const localizedQuantity = quantity.toLocaleString(localeForLang(lang));
+  return localizedUnit ? `${localizedQuantity} ${localizedUnit}` : localizedQuantity;
 }
 
 const Ctx = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: string) => string } | null>(null);

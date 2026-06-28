@@ -1,4 +1,5 @@
 import type { WriteOff, Draft, Employee, Product, Category, Role, WriteOffUi } from "./store";
+import { quantityLabel, type Lang } from "./i18n";
 
 /* ================================================================== */
 /* VERA backend client.                                                */
@@ -175,7 +176,7 @@ function toWriteOff(r: BackendRequest): WriteOff {
     doc: r.doc,
     product: r.product?.name ?? r.productNameFallback ?? "—",
     category: toCategory(r.product?.category),
-    qty: r.quantity != null ? `${r.quantity}${r.unit ? ` ${r.unit}` : ""}` : "—",
+    qty: quantityLabel(r.quantity, r.unit),
     point: r.tradePoint?.name ?? "—",
     reason: r.reason ?? "",
     deduction: r.deductionType === "with_deduction" ? "with" : "without",
@@ -263,10 +264,10 @@ export const api = {
   },
 
   /** Structure a transcript into write-off fields (catalog-reconciled). */
-  async extract(transcript: string): Promise<Extraction> {
+  async extract(transcript: string, lang: Lang): Promise<Extraction> {
     return req<Extraction>("/write-offs/extract", {
       method: "POST",
-      body: JSON.stringify({ transcript }),
+      body: JSON.stringify({ transcript, lang }),
     });
   },
 

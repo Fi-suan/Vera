@@ -12,7 +12,7 @@ import {
   CATEGORY_COLOR, type WriteOff,
 } from "./store";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
-import { translate as T } from "./i18n";
+import { categoryLabel, translate as T } from "./i18n";
 
 const NAV: NavItem[] = [
   { id: "overview", label: "Overview", Icon: ChartLineUp },
@@ -136,7 +136,7 @@ function Overview({ onQueue }: { onQueue: () => void }) {
             {a.byPoint.map((p, i) => (
               <div key={p.point} className="flex items-center justify-between text-[13px]">
                 <span className="flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ background: ["#f2555f", "#f6b95e", "#68c7a2", "#5fa8d9"][i % 4] }} />{p.point}</span>
-                <span className="font-mono font-bold text-[var(--vera-cocoa)]">{tengeShort(p.loss)}</span>
+                <span className="tabular-nums font-bold text-[var(--vera-cocoa)]">{tengeShort(p.loss)}</span>
               </div>
             ))}
           </div>
@@ -149,7 +149,7 @@ function Overview({ onQueue }: { onQueue: () => void }) {
           <Suspense fallback={<ChartFallback height={Math.max(140, a.byCategory.length * 42)} />}>
             <CategoryBars data={a.byCategory} />
           </Suspense>
-          <div className="mt-2 flex flex-wrap gap-2">{a.byCategory.map((c) => <Tag key={c.cat} color={CATEGORY_COLOR[c.cat]}>{c.cat}</Tag>)}</div>
+          <div className="mt-2 flex flex-wrap gap-2">{a.byCategory.map((c) => <Tag key={c.cat} color={CATEGORY_COLOR[c.cat]}>{categoryLabel(c.cat)}</Tag>)}</div>
         </div>
         <div className="border-t border-[#ecd5cc] pt-6">
           <h3 className="text-[17px] mb-3">{T("needsAttention")}</h3>
@@ -160,7 +160,7 @@ function Overview({ onQueue }: { onQueue: () => void }) {
                 <div key={r.id} className="flex items-center gap-3 py-3">
                   <Avatar name={e.name} hue={e.hue} size={36} />
                   <div className="min-w-0 flex-1"><div className="font-semibold text-[var(--vera-cocoa)] truncate">{r.qty} · {r.product}</div><div className="text-[13px] text-[var(--vera-rose-gray)] truncate">{e.name} · {r.point}</div></div>
-                  <span className="font-mono font-bold text-[var(--vera-berry)]">{tengeShort(r.loss)}</span>
+                  <span className="tabular-nums font-bold text-[var(--vera-berry)]">{tengeShort(r.loss)}</span>
                 </div>
               );
             })}
@@ -192,7 +192,7 @@ function Queue({ onOpen }: { onOpen: (id: string) => void }) {
                   <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Avatar name={e.name} hue={e.hue} size={30} /><span className="text-[13px] font-semibold">{e.name}</span></div>{r.loss >= 5000 && <Tag color="#b83242">{T("attentionTag")}</Tag>}</div>
                   <div className="mt-3 text-[18px] font-bold text-[var(--vera-cocoa)]">{r.qty} · {r.product}</div>
                   <div className="mt-1 flex items-center gap-1.5 text-[13px] text-[var(--vera-raspberry)]"><Sparkle size={13} /> {r.reason}</div>
-                  <div className="mt-4 flex items-center justify-between"><span className="text-[13px] text-[var(--vera-rose-gray)]">{r.point} · {timeAgo(r.createdAt)}</span><span className="font-mono font-bold text-[var(--vera-berry)]">{tenge(r.loss)}</span></div>
+                  <div className="mt-4 flex items-center justify-between"><span className="text-[13px] text-[var(--vera-rose-gray)]">{r.point} · {timeAgo(r.createdAt)}</span><span className="tabular-nums font-bold text-[var(--vera-berry)]">{tenge(r.loss)}</span></div>
                 </div>
               </motion.button>
             );
@@ -234,7 +234,7 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
             <button key={r.id} onClick={() => onOpen(r.id)} className="w-full flex items-center gap-3 py-3.5 text-left">
               <span className="size-10 rounded-xl grid place-items-center shrink-0" style={{ background: `${CATEGORY_COLOR[r.category]}22`, color: CATEGORY_COLOR[r.category] }}><ForkKnife size={18} /></span>
               <div className="min-w-0 flex-1"><div className="font-semibold truncate">{r.qty} · {r.product}</div><div className="text-[13px] text-[var(--vera-rose-gray)] truncate">{e.name.split(" ")[0]} · {r.point}</div><div className="mt-1">{(() => { const s = statusView(r); return <StatusLabel tone={s.tone} pulse={s.pulse}>{s.label}</StatusLabel>; })()}</div></div>
-              <span className="font-mono font-bold text-[14px]">{tenge(r.loss)}</span>
+              <span className="tabular-nums font-bold text-[14px]">{tenge(r.loss)}</span>
             </button>
           );
         })}

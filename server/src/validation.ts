@@ -32,6 +32,7 @@ export const updateMeSchema = z
 
 export const extractSchema = z.object({
   transcript: z.string().trim().min(1),
+  lang: z.enum(["ru", "kz", "en"]).optional().default("ru"),
 });
 
 export const createWriteOffSchema = z.object({

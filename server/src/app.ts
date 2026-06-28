@@ -328,8 +328,8 @@ export function createApp(options: AppOptions = {}) {
   app.post("/api/write-offs/extract", async (req, res, next) => {
     try {
       requireAuth(req);
-      const { transcript } = extractSchema.parse(req.body);
-      const extraction = await extractWriteOffFields(prisma, transcript);
+      const { transcript, lang } = extractSchema.parse(req.body);
+      const extraction = await extractWriteOffFields(prisma, transcript, lang);
       res.json(extraction);
     } catch (error) {
       next(error);

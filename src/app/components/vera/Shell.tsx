@@ -56,7 +56,7 @@ export function Shell({
               <VeraLogo width={66} />
             </div>
             <div className="flex items-center gap-2.5">
-              <button onClick={onExit} className="grid place-items-center size-9 rounded-full bg-white/18 text-[var(--vera-accent-cream)] active:scale-95 transition-transform" aria-label="Sign out">
+              <button onClick={onExit} className="grid place-items-center size-9 rounded-full bg-white/18 text-[var(--vera-accent-cream)] active:scale-95 transition-transform" aria-label={T("signOut")}>
                 <SignOut size={18} />
               </button>
               <Avatar name={who || "U"} hue={hue} size={36} />

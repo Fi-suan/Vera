@@ -3,7 +3,7 @@ import { AnimatePresence, motion, type Variants } from "motion/react";
 import {
   House, Microphone, ClipboardText, Package, User, CaretLeft, Check, Sparkle,
   Camera, ArrowRight, MagnifyingGlass, PencilSimple, ForkKnife, Clock,
-  CheckCircle, Tray, CaretRight, SignOut, Warning,
+  CheckCircle, Tray, CaretRight, Warning,
 } from "./icons";
 import { Shell, PageHead, type NavItem } from "./Shell";
 import { Button, StatusLabel, AnimatedNumber, Avatar, Tag } from "./ui";
@@ -11,11 +11,12 @@ import { Sticker, Petals } from "./brand";
 import { Waveform, MicOrb } from "./voice";
 import {
   useStore, timeAgo, tenge, tengeShort, CATEGORY_COLOR,
+  formatQuantity,
   type WriteOff,
 } from "./store";
 import type { Extraction, CreateFields } from "./api";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
-import { localeForLang, translate as T } from "./i18n";
+import { categoryLabel, localeForLang, translate as T, unitLabel } from "./i18n";
 import { getPrefs, setPref, haptic } from "./prefs";
 
 const navItems = (): NavItem[] => [
@@ -51,7 +52,7 @@ export function Employee({ onExit }: { onExit: () => void }) {
             {tab === "home" && <Dashboard onCapture={() => setFlow(true)} onTab={setTab} />}
             {tab === "requests" && <MyRequests />}
             {tab === "products" && <Products />}
-            {tab === "profile" && <Profile onExit={onExit} />}
+            {tab === "profile" && <Profile />}
           </motion.div>
         </AnimatePresence>
       </Shell>
@@ -214,7 +215,7 @@ function LiveClock() {
     const id = window.setInterval(() => setT(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);
-  return <span className="font-mono tabular-nums">{t.toLocaleTimeString(localeForLang(), { hour: "2-digit", minute: "2-digit" })}</span>;
+  return <span className="tabular-nums">{t.toLocaleTimeString(localeForLang(), { hour: "2-digit", minute: "2-digit" })}</span>;
 }
 
 function RadialGauge({ value, target }: { value: number; target: number }) {
@@ -338,7 +339,7 @@ function RequestRow({ r, i, expandable }: { r: WriteOff; i: number; expandable?:
           </div>
         </div>
         <div className="text-right shrink-0">
-          <div className="font-mono text-[13px] font-bold text-[var(--vera-cocoa)]">{tenge(r.loss)}</div>
+          <div className="tabular-nums text-[13px] font-bold text-[var(--vera-cocoa)]">{tenge(r.loss)}</div>
           <div className="text-[11.5px] text-[var(--vera-rose-gray)]">{timeAgo(r.createdAt)}</div>
         </div>
         {expandable && <CaretRight size={18} className={`shrink-0 text-[var(--vera-rose-gray)] transition-transform ${open ? "rotate-90" : "group-hover:translate-x-0.5"}`} />}
@@ -378,7 +379,7 @@ function Products() {
       {list.length === 0 && <Empty label={T("noProducts")} />}
       {cats.map((c) => (
         <div key={c} className="mt-7">
-          <div className="flex items-center gap-2 mb-2"><h3 className="text-[16px]">{c}</h3><Tag color={CATEGORY_COLOR[c]}>{list.filter((p) => p.category === c).length}</Tag></div>
+          <div className="flex items-center gap-2 mb-2"><h3 className="text-[16px]">{categoryLabel(c)}</h3><Tag color={CATEGORY_COLOR[c]}>{list.filter((p) => p.category === c).length}</Tag></div>
           <div className="divide-y divide-[#f0d8cf]">
             {list.filter((p) => p.category === c).map((p) => (
               <div key={p.name} className="flex items-center justify-between py-3.5">
@@ -387,8 +388,8 @@ function Products() {
                   <span className="font-semibold text-[var(--vera-cocoa)]">{p.name}</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono font-bold text-[var(--vera-cocoa)] text-[14px]">{tenge(p.cost)}</div>
-                  <div className="text-[12px] text-[var(--vera-rose-gray)]">{T("per")} {p.unit}</div>
+                  <div className="tabular-nums font-bold text-[var(--vera-cocoa)] text-[14px]">{tenge(p.cost)}</div>
+                  <div className="text-[12px] text-[var(--vera-rose-gray)]">{T("per")} {unitLabel(p.unit)}</div>
                 </div>
               </div>
             ))}
@@ -399,7 +400,7 @@ function Products() {
   );
 }
 
-function Profile({ onExit }: { onExit: () => void }) {
+function Profile() {
   const { me, requests, tradePoints, updateMe } = useStore();
   const mine = requests.filter((r) => r.employeeId === me.id);
   const total = mine.reduce((s, r) => s + r.loss, 0);
@@ -480,7 +481,6 @@ function Profile({ onExit }: { onExit: () => void }) {
           </div>
         ))}
       </div>
-      <Button variant="soft" className="mt-8" onClick={onExit}><SignOut size={18} /> {T("switchRole")}</Button>
     </div>
   );
 }
@@ -658,7 +658,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
 
   const reviewRows = [
     { k: "product", label: T("fieldProduct"), value: product?.name ?? ext?.productName ?? "—" },
-    { k: "qty", label: T("fieldQuantity"), value: quantity != null ? `${quantity}${unit ? ` ${unit}` : ""}` : "—" },
+    { k: "qty", label: T("fieldQuantity"), value: formatQuantity(quantity, unit) },
     { k: "point", label: T("fieldTradePoint"), value: point?.name ?? "—" },
     { k: "reason", label: T("fieldReason"), value: reason || "—" },
     { k: "deduction", label: T("fieldDeduction"), value: deductionType === "with_deduction" ? T("withDeduction") : deductionType === "without_deduction" ? T("withoutDeduction") : "—" },
@@ -756,7 +756,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
                 <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">{T("fieldTradePoint")}</p><div className="flex flex-wrap gap-2.5">{store.tradePoints.map((t) => <Chip key={t.id} on={tradePointId === t.id} onClick={() => setTradePointId(t.id)}>{t.name}</Chip>)}</div></div>
               )}
               {needs.qty && (
-                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">{T("fieldQuantity")}{unit ? ` (${unit})` : ""}</p>
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">{T("fieldQuantity")}{unit ? ` (${unitLabel(unit)})` : ""}</p>
                   <input type="number" inputMode="decimal" min={0} step="0.1" value={quantity ?? ""} onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : null)} placeholder="0" className="w-40 rounded-2xl border-[1.5px] border-[#e6ded7] bg-white px-4 py-3 outline-none focus:border-[var(--vera-strawberry)] text-[16px]" /></div>
               )}
               {needs.deduction && (
@@ -772,7 +772,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
               <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)] max-w-[34ch]">{T("attachPhotoSub")}</p>
               <label className="mt-6 relative grid place-items-center aspect-[4/3] overflow-hidden rounded-3xl border-[1.5px] border-dashed border-[#e0c8bf] bg-white/60 cursor-pointer">
                 {photoPreview ? (
-                  <img src={photoPreview} alt="proof" className="absolute inset-0 size-full object-cover" />
+                  <img src={photoPreview} alt={T("proofPhotoAlt")} className="absolute inset-0 size-full object-cover" />
                 ) : (
                   <span className="flex flex-col items-center gap-2 text-[var(--vera-rose-gray)]"><Camera size={32} /><span className="text-[14px] font-semibold">{T("tapTakeUpload")}</span></span>
                 )}
@@ -785,7 +785,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
           {step === "confirm" && (
             <motion.div key="con" {...fade} className="flex-1 flex flex-col pt-8 overflow-y-auto">
               <h2 className="text-[24px]">{T("readyToSend")}</h2>
-              {photoPreview && <div className="mt-5 overflow-hidden rounded-3xl"><img src={photoPreview} alt="proof" className="w-full h-44 object-cover" /></div>}
+              {photoPreview && <div className="mt-5 overflow-hidden rounded-3xl"><img src={photoPreview} alt={T("proofPhotoAlt")} className="w-full h-44 object-cover" /></div>}
               <div className="mt-5 divide-y divide-[#f0d8cf]">
                 {reviewRows.map((f) => (
                   <div key={f.k} className="flex items-center justify-between py-3"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">{f.label}</span><span className="font-semibold text-[var(--vera-cocoa)] text-right max-w-[60%]">{f.value}</span></div>

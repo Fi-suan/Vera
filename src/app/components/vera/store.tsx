@@ -8,7 +8,7 @@ import {
 } from "react";
 import { ApiError, api } from "./api";
 import type { CreateFields, Extraction } from "./api";
-import { currentLang, localeForLang, translate as T } from "./i18n";
+import { currentLang, localeForLang, quantityLabel, translate as T, type Lang } from "./i18n";
 
 /* ================================================================== */
 /* VERA data layer.                                                    */
@@ -156,15 +156,15 @@ function toProduct(p: { id: string; name: string; category: string; unit: string
 
 function missingFieldLabel(field: string) {
   const map: Record<string, string> = {
-    tradePointId: "trade point",
-    productId: "product",
-    productNameFallback: "product name",
-    quantity: "quantity",
-    reason: "reason",
-    deductionType: "deduction type",
-    deductionEmployeeId: "employee for deduction",
-    comment: "comment",
-    photoUrl: "proof photo",
+    tradePointId: T("fieldTradePoint"),
+    productId: T("fieldProduct"),
+    productNameFallback: T("fieldProductName"),
+    quantity: T("fieldQuantity"),
+    reason: T("fieldReason"),
+    deductionType: T("fieldDeduction"),
+    deductionEmployeeId: T("fieldDeductionEmployee"),
+    comment: T("fieldComment"),
+    photoUrl: T("fieldProofPhoto"),
   };
   return map[field] ?? field;
 }
@@ -206,7 +206,7 @@ type Store = {
   restoreSession: () => Promise<Role | null>;
   logout: () => void;
   transcribe: (audio: Blob) => Promise<{ transcript: string; provider: string }>;
-  extract: (transcript: string) => Promise<Extraction>;
+  extract: (transcript: string, lang?: Lang) => Promise<Extraction>;
   submitWriteOff: (input: { fields: CreateFields; photoFile?: File | null }) => Promise<WriteOff>;
   approve: (id: string) => void;
   reject: (id: string, note: string) => void;
@@ -304,7 +304,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const transcribe = useCallback((audio: Blob) => api.transcribe(audio), []);
-  const extract = useCallback((transcript: string) => api.extract(transcript), []);
+  const extract = useCallback((transcript: string, lang: Lang = currentLang()) => api.extract(transcript, lang), []);
 
   // Full lifecycle: create -> (photo upload) -> submit -> refresh.
   const submitWriteOff = useCallback(
@@ -322,7 +322,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (error instanceof ApiError && error.status === 422) {
           const detailFields = (error.details as { missingFields?: string[] } | undefined)?.missingFields ?? [];
           const labels = detailFields.length ? detailFields.map(missingFieldLabel) : (result.ui?.missingFieldLabels ?? []);
-          throw new Error(`Please add missing details: ${labels.length ? labels.join(", ") : "required fields"}.`);
+          throw new Error(`${T("missingDetailsError")}: ${labels.length ? labels.join(", ") : T("requiredFieldsFallback")}.`);
         }
         throw error;
       }
@@ -391,6 +391,8 @@ export const timeAgo = (ts: number) => {
   const d = Math.floor(h / 24);
   return `${d} ${T(pluralKey(d, "day"))}`;
 };
+
+export const formatQuantity = (quantity?: number | null, unit?: string | null) => quantityLabel(quantity, unit);
 
 export const empById = (id: string) => EMPLOYEES.find((e) => e.id === id) ?? {
   id,

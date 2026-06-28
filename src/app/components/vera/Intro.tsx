@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { useEffect } from "react";
 import { Atmosphere } from "./ui";
 import { VeraLogo, Petals } from "./brand";
+import { translate as T } from "./i18n";
 
 /* Brand reveal built around the real VERA sticker logo. */
 export function Intro({ onDone }: { onDone: () => void }) {
@@ -34,7 +35,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
           transition={{ delay: 1, duration: 0.6 }}
           className="mt-8 text-[14px] font-bold tracking-[0.22em] uppercase text-[var(--vera-rose-gray)]"
         >
-          Speak · Structure · Verify
+          {T("introTagline")}
         </motion.p>
 
         <motion.div
@@ -52,7 +53,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
         onClick={onDone}
         className="absolute bottom-10 text-[13px] font-semibold text-[var(--vera-rose-gray)] hover:text-[var(--vera-berry)]"
       >
-        Skip
+        {T("skipIntro")}
       </motion.button>
     </motion.div>
   );

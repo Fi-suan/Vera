@@ -3,7 +3,7 @@ import {
   BarChart, Bar, Cell, PieChart, Pie,
 } from "recharts";
 import { tengeShort, CATEGORY_COLOR, type Category } from "./store";
-import { translate as T } from "./i18n";
+import { categoryLabel, translate as T } from "./i18n";
 
 const axisTick = { fontSize: 12, fill: "#9a747a", fontWeight: 600 };
 
@@ -39,7 +39,7 @@ export function CategoryBars({ data }: { data: { cat: Category; loss: number }[]
     <ResponsiveContainer width="100%" height={Math.max(140, data.length * 42)}>
       <BarChart data={data} layout="vertical" margin={{ left: 0, right: 16 }}>
         <XAxis type="number" hide />
-        <Tooltip cursor={{ fill: "rgba(242,85,95,0.06)" }} content={({ active, payload }) => (active && payload?.length ? <Box label={payload[0].payload.cat} value={tengeShort(payload[0].value as number)} /> : null)} />
+        <Tooltip cursor={{ fill: "rgba(242,85,95,0.06)" }} content={({ active, payload }) => (active && payload?.length ? <Box label={categoryLabel(payload[0].payload.cat)} value={tengeShort(payload[0].value as number)} /> : null)} />
         <Bar dataKey="loss" radius={[8, 8, 8, 8]} barSize={18} animationDuration={900}>
           {data.map((d) => <Cell key={d.cat} fill={CATEGORY_COLOR[d.cat]} />)}
         </Bar>
