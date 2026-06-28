@@ -1,4 +1,4 @@
-import { mkdir, rename, unlink } from "node:fs/promises";
+import { copyFile, mkdir, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getConfig } from "./config";
@@ -52,7 +52,15 @@ class LocalStorageAdapter implements StorageAdapter {
     await mkdir(dir, { recursive: true });
     const key = `proofs/${Date.now()}-${file.filename}${safeExtension(file)}`;
     const target = path.resolve(uploadRoot, key);
-    await rename(file.path, target);
+    // A mounted disk (e.g. Render /data/uploads) is a different filesystem than
+    // multer's temp dir, so rename() throws EXDEV — fall back to copy + unlink.
+    try {
+      await rename(file.path, target);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EXDEV") throw error;
+      await copyFile(file.path, target);
+      await unlink(file.path).catch(() => undefined);
+    }
     const publicBaseUrl = getConfig().STORAGE_LOCAL_PUBLIC_BASE_URL?.replace(/\/$/, "");
     return {
       adapter: this.name,

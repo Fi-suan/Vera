@@ -24,13 +24,20 @@ services:
       - key: ALLOW_DESTRUCTIVE_SEED
         value: "false"
       - key: STORAGE_ADAPTER
-        value: local
-      - key: ACCEPT_LOCAL_STORAGE_IN_PRODUCTION
-        value: "true"
-      - key: STORAGE_LOCAL_DIR
-        value: ""
-      - key: STORAGE_LOCAL_PUBLIC_BASE_URL
-        value: ""
+        value: s3
+      # Supabase Storage (S3-compatible). Fill these in the Render dashboard.
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_PUBLIC_BASE_URL
+        sync: false
       - key: AI_PROVIDER
         value: gemini
       - key: GEMINI_API_KEY
