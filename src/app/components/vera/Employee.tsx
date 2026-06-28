@@ -435,9 +435,9 @@ function Profile() {
           { n: mine.filter((r) => r.status === "approved").length, l: T("approved") },
           { n: total, l: T("totalLogged"), money: true },
         ].map((s, idx) => (
-          <div key={s.l} className={`text-center ${idx > 0 ? "border-l border-[#ecd5cc]" : ""}`}>
-            <div className="text-[22px] font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>{s.money ? <AnimatedNumber value={s.n} format={(v) => tenge(v)} /> : <AnimatedNumber value={s.n} />}</div>
-            <div className="text-[12px] font-semibold text-[var(--vera-rose-gray)]">{s.l}</div>
+          <div key={s.l} className={`min-w-0 px-1 text-center ${idx > 0 ? "border-l border-[#ecd5cc]" : ""}`}>
+            <div className="text-[clamp(16px,5vw,22px)] font-bold text-[var(--vera-cocoa)] leading-none tabular-nums truncate" style={{ fontFamily: "Montserrat" }}>{s.money ? <AnimatedNumber value={s.n} format={(v) => tengeShort(v)} /> : <AnimatedNumber value={s.n} />}</div>
+            <div className="mt-1 truncate text-[12px] font-semibold text-[var(--vera-rose-gray)]">{s.l}</div>
           </div>
         ))}
       </div>

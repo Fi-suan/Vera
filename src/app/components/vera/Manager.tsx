@@ -111,9 +111,9 @@ function Overview({ onQueue }: { onQueue: () => void }) {
 
       <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-6 border-t border-[#ecd5cc] pt-6">
         {kpis.map((k) => (
-          <div key={k.l} className="px-4">
-            <div className="flex items-center justify-between"><span className="text-[13px] font-semibold text-[var(--vera-rose-gray)]">{k.l}</span><k.Icon size={18} className="text-[var(--vera-rose-gray)]" /></div>
-            <div className="mt-2 text-[clamp(24px,3vw,32px)] font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>
+          <div key={k.l} className="min-w-0 px-4">
+            <div className="flex items-center gap-1.5"><span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--vera-rose-gray)]">{k.l}</span><k.Icon size={18} className="shrink-0 text-[var(--vera-rose-gray)]" /></div>
+            <div className="mt-2 text-[clamp(18px,5.5vw,30px)] font-bold text-[var(--vera-cocoa)] leading-none tabular-nums truncate" style={{ fontFamily: "Montserrat" }}>
               {k.money ? <AnimatedNumber value={k.v} format={(n) => tenge(n)} /> : <><AnimatedNumber value={k.v} />{k.suffix ?? ""}</>}
             </div>
           </div>
