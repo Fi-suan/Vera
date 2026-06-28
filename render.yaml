@@ -4,8 +4,12 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
+    plan: free
     autoDeploy: true
-    preDeployCommand: npm run server:pg:migrate:deploy && npm run server:pg:seed
+    # NOTE: preDeployCommand is a paid-plan feature. On the free plan, run
+    # migrations + seed manually once against the Postgres:
+    #   DATABASE_URL=... npm run server:pg:migrate:deploy
+    #   DATABASE_URL=... npm run server:pg:seed
     envVars:
       - key: NODE_ENV
         value: production
