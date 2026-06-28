@@ -155,7 +155,7 @@ let catalog: { products: BackendProduct[]; tradePoints: BackendTradePoint[] } = 
 
 /* ---- Mapping: backend <-> frontend ------------------------------ */
 
-const CATEGORIES: Category[] = ["Meat", "Dairy", "Bakery", "Produce", "Seafood", "Prepared"];
+const CATEGORIES: Category[] = ["Burger", "Side", "Combo", "Drink", "Add-on", "Prepared"];
 const toCategory = (value?: string | null): Category =>
   CATEGORIES.includes(value as Category) ? (value as Category) : "Prepared";
 

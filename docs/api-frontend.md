@@ -43,7 +43,7 @@ Response:
     "name": "Aigerim",
     "email": "aigerim@vera.demo",
     "role": "employee",
-    "tradePointId": "tp-aktau"
+    "tradePointId": "tp-bahandi-turan-55d"
   },
   "accessToken": "...",
   "tokenType": "Bearer"
@@ -110,7 +110,7 @@ POST /write-offs/extract
 Content-Type: application/json
 
 {
-  "transcript": "Списать 2 круассана на Достык, сгорели в печи, без удержания"
+  "transcript": "Списать 2 чизбургера курица х2 на Turan 55d, ошибочный заказ, без удержания"
 }
 ```
 
@@ -118,14 +118,14 @@ Use response fields to prefill the form:
 
 ```json
 {
-  "productId": "p-croissants",
-  "productName": "Croissants",
+  "productId": "p-bahandi-p008",
+  "productName": "Чизбургер курица х2",
   "quantity": 2,
   "unit": "pcs",
-  "tradePointId": "tp-dostyk",
-  "reason": "Burned during cooking",
+  "tradePointId": "tp-bahandi-turan-55d",
+  "reason": "Wrong order assembled during rush hour",
   "deductionType": "without_deduction",
-  "comment": "2 croissants burned in the oven and are not suitable for sale.",
+  "comment": "2 чизбургера курица х2 were assembled for the wrong order and cannot be sold.",
   "missingFields": ["photoUrl"],
   "confidenceScore": 0.86,
   "provider": "gemini"
@@ -141,16 +141,16 @@ POST /write-offs
 Content-Type: application/json
 
 {
-  "tradePointId": "tp-dostyk",
-  "productId": "p-croissants",
+  "tradePointId": "tp-bahandi-turan-55d",
+  "productId": "p-bahandi-p008",
   "quantity": 2,
   "unit": "pcs",
-  "reason": "Burned during cooking",
+  "reason": "Wrong order assembled during rush hour",
   "deductionType": "without_deduction",
-  "comment": "2 croissants burned in the oven and are not suitable for sale.",
-  "voiceTranscript": "Списать 2 круассана...",
+  "comment": "2 чизбургера курица х2 were assembled for the wrong order and cannot be sold.",
+  "voiceTranscript": "Списать 2 чизбургера курица х2...",
   "aiExtractedFields": {},
-  "aiGeneratedComment": "2 croissants burned in the oven and are not suitable for sale.",
+  "aiGeneratedComment": "2 чизбургера курица х2 were assembled for the wrong order and cannot be sold.",
   "aiConfidenceScore": 0.86
 }
 ```
@@ -187,7 +187,7 @@ Content-Type: application/json
 
 {
   "quantity": 3,
-  "comment": "3 croissants burned in the oven and are not suitable for sale."
+  "comment": "3 чизбургера курица х2 were assembled for the wrong order and cannot be sold."
 }
 ```
 
@@ -224,7 +224,7 @@ Use this for employee home/history screens.
 ### Queue
 
 ```http
-GET /reviewer/write-offs?status=pending_review&tradePointId=tp-dostyk
+GET /reviewer/write-offs?status=pending_review&tradePointId=tp-bahandi-turan-55d
 ```
 
 Supported filters:
@@ -319,22 +319,22 @@ Every write-off response keeps raw fields and includes a `ui` block:
   "id": "wo-123",
   "doc": "WO-123",
   "status": "pending_review",
-  "product": { "name": "Croissants" },
-  "tradePoint": { "name": "Dostyk" },
+  "product": { "name": "Чизбургер курица х2" },
+  "tradePoint": { "name": "Bahandi Astana — Turan 55d" },
   "missingFields": [],
   "events": [],
   "syncLogs": [],
   "ui": {
-    "title": "Croissants",
-    "subtitle": "2 pcs · Dostyk",
+    "title": "Чизбургер курица х2",
+    "subtitle": "2 pcs · Bahandi Astana — Turan 55d",
     "statusLabel": "Waiting for review",
     "statusTone": "info",
-    "productName": "Croissants",
-    "tradePointName": "Dostyk",
+    "productName": "Чизбургер курица х2",
+    "tradePointName": "Bahandi Astana — Turan 55d",
     "employeeName": "Aigerim",
     "reviewerName": null,
     "quantityLabel": "2 pcs",
-    "costLabel": "₸1,800",
+    "costLabel": "₸2,080",
     "photoRequired": false,
     "missingFieldLabels": [],
     "sync": {

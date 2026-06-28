@@ -3,6 +3,7 @@ import {
   BarChart, Bar, Cell, PieChart, Pie,
 } from "recharts";
 import { tengeShort, CATEGORY_COLOR, type Category } from "./store";
+import { translate as T } from "./i18n";
 
 const axisTick = { fontSize: 12, fill: "#9a747a", fontWeight: 600 };
 
@@ -26,7 +27,7 @@ export function LossTrend({ data }: { data: { label: string; loss: number }[] })
           </linearGradient>
         </defs>
         <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} />
-        <Tooltip cursor={{ stroke: "#f2555f", strokeDasharray: 4, strokeOpacity: 0.4 }} content={({ active, payload }) => (active && payload?.length ? <Box label="Loss" value={tengeShort(payload[0].value as number)} /> : null)} />
+        <Tooltip cursor={{ stroke: "#f2555f", strokeDasharray: 4, strokeOpacity: 0.4 }} content={({ active, payload }) => (active && payload?.length ? <Box label={T("statLoss")} value={tengeShort(payload[0].value as number)} /> : null)} />
         <Area type="monotone" dataKey="loss" stroke="#f2555f" strokeWidth={3} fill="url(#lossFill)" dot={{ r: 3, fill: "#f2555f", strokeWidth: 0 }} activeDot={{ r: 5 }} animationDuration={900} />
       </AreaChart>
     </ResponsiveContainer>

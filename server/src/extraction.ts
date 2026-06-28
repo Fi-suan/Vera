@@ -51,6 +51,19 @@ function normalizeProductName(name: string) {
     .replace(/\b(tomato|tomatoes)\b/i, "Cherry tomatoes")
     .replace(/\b(croissant|croissants)\b/i, "Croissants")
     .replace(/\bmozzarella\b/i, "Mozzarella")
+    .replace(/\b(fry|fries)\b/i, "Картофель фри")
+    .replace(/\bcola\b/i, "Coca-cola 0,5 л")
+    .replace(/\bcheeseburger\b/i, "Чизбургер")
+    .trim();
+}
+
+function normalizeSearch(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/х(?=\d)/g, "x")
+    .replace(/[^a-zа-я0-9]+/gi, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -111,21 +124,51 @@ async function getCatalog(prisma: PrismaClient): Promise<Catalog> {
 
 function findProduct(catalog: Catalog, name?: string | null, transcript = "") {
   const lower = `${name ?? ""} ${transcript}`.toLowerCase();
+  const haystack = normalizeSearch(lower);
+  const exactBahandi = catalog.products.find((item) => {
+    const itemName = normalizeSearch(item.name);
+    if (haystack.includes("фри")) return itemName === "картофель фри";
+    if (haystack.includes("чизбургер") && haystack.includes("курица") && haystack.includes("x2")) {
+      return itemName.includes("чизбургер") && itemName.includes("курица") && itemName.includes("x2");
+    }
+    if (haystack.includes("чизбургер") && haystack.includes("говядина") && haystack.includes("x2")) {
+      return itemName.includes("чизбургер") && itemName.includes("говядина") && itemName.includes("x2");
+    }
+    return false;
+  });
+  if (exactBahandi) return exactBahandi;
+  const scored = catalog.products
+    .map((item) => {
+      const itemName = normalizeSearch(item.name);
+      const tokens = itemName.split(" ").filter((part) => part.length >= 2);
+      const exact = haystack.includes(itemName);
+      const score = exact ? tokens.length + 4 : tokens.filter((part) => haystack.includes(part)).length;
+      return { item, score, exact };
+    })
+    .filter(({ item, score }) => score >= 2 || (normalizeSearch(item.name).includes("фри") && haystack.includes("фри")))
+    .sort((a, b) => b.score - a.score || Number(b.exact) - Number(a.exact));
   return (
     catalog.products.find((item) => lower.includes(item.name.toLowerCase())) ??
-    catalog.products.find((item) =>
-      item.name
-        .toLowerCase()
-        .split(/\s+/)
-        .some((part) => part.length > 3 && lower.includes(part)),
-    ) ??
+    scored[0]?.item ??
     null
   );
 }
 
 function findTradePoint(catalog: Catalog, name?: string | null, transcript = "") {
   const lower = `${name ?? ""} ${transcript}`.toLowerCase();
-  return catalog.tradePoints.find((point) => lower.includes(point.name.toLowerCase())) ?? null;
+  const haystack = normalizeSearch(lower);
+  return (
+    catalog.tradePoints.find((point) => haystack.includes(normalizeSearch(point.name))) ??
+    catalog.tradePoints.find((point) => haystack.includes(normalizeSearch(point.address))) ??
+    catalog.tradePoints.find((point) => {
+      const tokens = normalizeSearch(`${point.name} ${point.address}`)
+        .split(" ")
+        .filter((part) => part.length >= 3 && !["bahandi", "astana", "астана", "улица", "проспект"].includes(part));
+      const matches = tokens.filter((part) => haystack.includes(part));
+      return matches.length >= 2 || tokens.some((part) => /[0-9]/.test(part) && haystack.includes(part));
+    }) ??
+    null
+  );
 }
 
 function findEmployee(catalog: Catalog, name?: string | null, transcript = "") {
@@ -221,7 +264,8 @@ function extractWithMock(catalog: Catalog, transcript: string) {
     (includesAny(lower, ["cutlet", "котлет"]) ? "Beef cutlets" : null) ??
     (includesAny(lower, ["bun", "булоч"]) ? "Buns" : null) ??
     (includesAny(lower, ["tomato", "помид"]) ? "Cherry tomatoes" : null) ??
-    (includesAny(lower, ["croissant"]) ? "Croissants" : null);
+    (includesAny(lower, ["croissant"]) ? "Croissants" : null) ??
+    (includesAny(lower, ["fries", "фри"]) ? "Картофель фри" : null);
   const tradePoint = findTradePoint(catalog, null, transcript);
   const deductionType = includesAny(lower, ["without deduction", "без удерж"])
     ? "without_deduction"

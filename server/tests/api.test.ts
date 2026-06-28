@@ -49,6 +49,7 @@ describe("VERA backend MVP", () => {
     expect(spec.body.components.securitySchemes.bearerAuth.scheme).toBe("bearer");
     expect(spec.body.paths["/ready"]).toBeTruthy();
     expect(spec.body.paths["/auth/login"]).toBeTruthy();
+    expect(spec.body.paths["/me"]?.patch).toBeTruthy();
     expect(spec.body.paths["/write-offs/{id}/approve"]).toBeTruthy();
     expect(spec.body.paths["/iiko/test-connection"]).toBeTruthy();
 
@@ -113,18 +114,31 @@ describe("VERA backend MVP", () => {
     expect(res.body.missingFields).toContain("deductionType");
   });
 
+  it("extracts Bahandi products and Astana branch aliases from voice text", async () => {
+    const res = await request(app)
+      .post("/api/write-offs/extract")
+      .set(employee)
+      .send({ transcript: "Списать 2 чизбургера курица х2 на Turan 55d, ошибочный заказ, без удержания" })
+      .expect(200);
+
+    expect(res.body.productId).toBe("p-bahandi-p008");
+    expect(res.body.tradePointId).toBe("tp-bahandi-turan-55d");
+    expect(res.body.quantity).toBe(2);
+    expect(res.body.deductionType).toBe("without_deduction");
+  });
+
   it("keeps incomplete requests in missing_info and rejects submit until photo is attached", async () => {
     const created = await request(app)
       .post("/api/write-offs")
       .set(employee)
       .send({
-        tradePointId: "tp-aktau",
-        productId: "p-beef-cutlets",
-        quantity: 3,
+        tradePointId: "tp-bahandi-turan-55d",
+        productId: "p-bahandi-p008",
+        quantity: 2,
         unit: "pcs",
-        reason: "Fell on the floor during order assembly",
+        reason: "Wrong order assembled during rush hour",
         deductionType: "without_deduction",
-        comment: "3 beef cutlets fell on the floor and cannot be reused.",
+        comment: "2 чизбургера курица х2 were assembled for the wrong order and cannot be sold.",
       })
       .expect(201);
 
@@ -160,13 +174,13 @@ describe("VERA backend MVP", () => {
       .post("/api/write-offs")
       .set(employee)
       .send({
-        tradePointId: "tp-aktau",
-        productId: "p-beef-cutlets",
+        tradePointId: "tp-bahandi-turan-55d",
+        productId: "p-bahandi-p003",
         quantity: 1,
         unit: "pcs",
         reason: "Dropped during plating",
         deductionType: "without_deduction",
-        comment: "1 beef cutlet dropped during plating and cannot be reused.",
+        comment: "1 чизбургер говядина dropped during plating and cannot be reused.",
       })
       .expect(201);
 
@@ -185,14 +199,14 @@ describe("VERA backend MVP", () => {
       .post("/api/write-offs")
       .set(employee)
       .send({
-        tradePointId: "tp-aktau",
-        productId: "p-croissants",
+        tradePointId: "tp-bahandi-turan-55d",
+        productId: "p-bahandi-p011",
         quantity: 2,
         unit: "pcs",
-        reason: "Over-baked and burned",
+        reason: "Cold and unsold after holding time",
         deductionType: "without_deduction",
-        comment: "2 croissants burned in the oven and are not suitable for sale.",
-        photoUrl: "https://example.com/croissants.jpg",
+        comment: "2 portions of fries exceeded holding time and are not suitable for sale.",
+        photoUrl: "https://example.com/fries.jpg",
       })
       .expect(201);
 
@@ -250,7 +264,12 @@ describe("VERA backend MVP", () => {
 
   it("requires authentication for bootstrap data", async () => {
     await request(app).get("/api/bootstrap").expect(401);
-    await request(app).get("/api/bootstrap").set(employee).expect(200);
+    const res = await request(app).get("/api/bootstrap").set(employee).expect(200);
+
+    expect(res.body.tradePoints).toHaveLength(14);
+    expect(res.body.tradePoints.map((point: { id: string }) => point.id)).toContain("tp-bahandi-turan-55d");
+    expect(res.body.tradePoints.map((point: { id: string }) => point.id)).not.toContain("tp-bahandi-syganak-1b-2");
+    expect(res.body.products.map((product: { id: string }) => product.id)).toContain("p-bahandi-p008");
   });
 
   it("keeps user-created write-offs when idempotent seed runs again", async () => {
@@ -259,8 +278,8 @@ describe("VERA backend MVP", () => {
         id: "wo-user-created-preserved",
         doc: "WO-PRESERVE-1",
         createdByUserId: "u-employee-aigerim",
-        tradePointId: "tp-aktau",
-        productId: "p-croissants",
+        tradePointId: "tp-bahandi-turan-55d",
+        productId: "p-bahandi-p011",
         quantity: 1,
         unit: "pcs",
         reason: "Manual user-created request should survive seed",
@@ -268,7 +287,7 @@ describe("VERA backend MVP", () => {
         comment: "Manual user-created request should survive idempotent seed.",
         photoUrl: "https://example.com/preserve.jpg",
         status: "pending_review",
-        costEstimate: 315,
+        costEstimate: 300,
       },
     });
 
@@ -281,12 +300,12 @@ describe("VERA backend MVP", () => {
   it("filters reviewer queue by status and trade point", async () => {
     const res = await request(app)
       .get("/api/reviewer/write-offs")
-      .query({ status: "pending_review", tradePointId: "tp-dostyk" })
+      .query({ status: "pending_review", tradePointId: "tp-bahandi-khan-shatyr" })
       .set(reviewer)
       .expect(200);
 
     expect(res.body.items.length).toBeGreaterThanOrEqual(1);
-    expect(res.body.items.every((item: { status: string; tradePointId: string }) => item.status === "pending_review" && item.tradePointId === "tp-dostyk")).toBe(true);
+    expect(res.body.items.every((item: { status: string; tradePointId: string }) => item.status === "pending_review" && item.tradePointId === "tp-bahandi-khan-shatyr")).toBe(true);
     expect(res.body.items[0].ui.statusLabel).toBe("Waiting for review");
     expect(res.body.items[0].ui.actions.canApprove).toBe(true);
     expect(res.body.items[0].ui.actions.canReject).toBe(true);

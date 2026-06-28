@@ -43,7 +43,7 @@ async function main() {
     method: "POST",
     headers: authHeaders(employee),
     body: JSON.stringify({
-      transcript: "Списать 2 круассана на Достык, сгорели в печи, без удержания",
+      transcript: "Списать 2 чизбургера курица х2 на Turan 55d, ошибочный заказ, без удержания",
     }),
   });
 
@@ -51,14 +51,14 @@ async function main() {
     method: "POST",
     headers: authHeaders(employee),
     body: JSON.stringify({
-      tradePointId: extraction.tradePointId ?? "tp-dostyk",
-      productId: extraction.productId ?? "p-croissants",
+      tradePointId: extraction.tradePointId ?? "tp-bahandi-turan-55d",
+      productId: extraction.productId ?? "p-bahandi-p008",
       quantity: extraction.quantity ?? 2,
       unit: "pcs",
-      reason: "Burned during cooking",
+      reason: "Wrong order assembled during rush hour",
       deductionType: extraction.deductionType ?? "without_deduction",
-      comment: extraction.comment ?? "2 croissants burned in the oven and are not suitable for sale.",
-      voiceTranscript: "Списать 2 круассана на Достык, сгорели в печи, без удержания",
+      comment: extraction.comment ?? "2 чизбургера курица х2 were assembled for the wrong order and cannot be sold.",
+      voiceTranscript: "Списать 2 чизбургера курица х2 на Turan 55d, ошибочный заказ, без удержания",
       aiGeneratedComment: extraction.comment,
       aiConfidenceScore: 0.9,
     }),

@@ -27,6 +27,9 @@ const D: Dict = {
   passwordLabel: ["Пароль", "Құпиясөз", "Password"],
   passwordPh: ["Введите пароль", "Құпиясөзді енгізіңіз", "Enter your password"],
   signinError: ["Не удалось войти. Проверьте email и пароль.", "Кіру мүмкін болмады. Email мен құпиясөзді тексеріңіз.", "Could not sign in. Check your email and password."],
+  authInvalidCredentials: ["Неверный email или пароль.", "Email немесе құпиясөз қате.", "Invalid email or password."],
+  authAccountExists: ["Пользователь с таким email или телефоном уже есть.", "Бұл email немесе телефонмен пайдаланушы бар.", "A user with this email or phone already exists."],
+  authInvalidInput: ["Проверьте данные и попробуйте снова.", "Деректерді тексеріп, қайталап көріңіз.", "Check the details and try again."],
   continue: ["Продолжить", "Жалғастыру", "Continue"],
   // sign up
   signupTitle: ["Создать аккаунт", "Аккаунт құру", "Create account"],
@@ -44,12 +47,8 @@ const D: Dict = {
   yourTradePointSub: ["Подставляется при записи списания.", "Списание жазғанда автоматты қойылады.", "Pre-filled when you capture a write-off."],
   notSet: ["Не выбрана", "Таңдалмаған", "Not set"],
   protected: ["Защищено · код не покидает точку", "Қорғалған · код нүктеден шықпайды", "Protected · codes never leave the point"],
-  chooseRole: ["Как вы работаете сегодня?", "Бүгін қалай жұмыс істейсіз?", "How are you working today?"],
-  back: ["Назад", "Артқа", "Back"],
   onFloor: ["На точке", "Нүктеде", "On the floor"],
-  onFloorSub: ["Списания голосом", "Дауыспен есептен шығару", "Report write-offs by voice"],
   runningPoint: ["Управление точкой", "Нүктені басқару", "Running the point"],
-  runningPointSub: ["Проверка, решения, аналитика", "Тексеру, шешім, аналитика", "Review, decide, analyse loss"],
   // nav
   home: ["Главная", "Басты", "Home"],
   capture: ["Запись", "Жазу", "Capture"],
@@ -97,6 +96,7 @@ const D: Dict = {
   totalLogged: ["Всего списано", "Барлығы", "Total logged"],
   // profile settings
   profileTitle: ["Профиль", "Профиль", "Profile"],
+  profileSaveError: ["Не удалось сохранить точку. Попробуйте ещё раз.", "Нүктені сақтау мүмкін болмады. Қайталап көріңіз.", "Could not save the trade point. Try again."],
   haptics: ["Виброотклик", "Дірілмен жауап", "Haptic feedback"],
   hapticsSub: ["Лёгкая вибрация при записи и отправке", "Жазу мен жіберуде діріл", "Subtle buzz on capture and submit"],
   voiceHints: ["Голосовые подсказки", "Дауыс кеңестері", "Voice hints"],
@@ -152,17 +152,17 @@ const D: Dict = {
   finishRecording: ["Завершить запись", "Жазуды аяқтау", "Finish recording"],
   typeInstead: ["Ввести вручную", "Қолмен енгізу", "Type instead"],
   voiceHintTitle: ["Например, скажите:", "Мысалы, айтыңыз:", "For example, say:"],
-  voiceHintEx1: ["«3 котлеты упали на пол в Aktau Mall, без удержания»", "«3 котлета Aktau Mall-да еденге түсті, ұстаусыз»", "“3 cutlets fell on the floor at Aktau Mall, no deduction”"],
-  voiceHintEx2: ["«Списать 2 кг лосося — истёк срок»", "«2 кг лосось — мерзімі өтті»", "“Write off 2 kg of salmon — expired”"],
+  voiceHintEx1: ["«2 чизбургера курица х2 на Turan 55d, ошибочный заказ, без удержания»", "«Turan 55d-та 2 тауық чизбургер x2, қате тапсырыс, ұстаусыз»", "“2 chicken cheeseburgers x2 at Turan 55d, wrong order, no deduction”"],
+  voiceHintEx2: ["«Списать 3 фри в Хан Шатыр — остыли»", "«Хан Шатырда 3 фри есептен шығару — суып қалды»", "“Write off 3 fries at Khan Shatyr — cold”"],
   // capture flow — transcript
   yourWords: ["Ваши слова", "Сіздің сөздеріңіз", "Your words"],
   reviewTranscript: ["Проверьте текст", "Мәтінді тексеріңіз", "Review the transcript"],
   reviewTranscriptSub: ["Отредактируйте при необходимости, затем VERA структурирует.", "Қажет болса өңдеңіз, содан кейін VERA құрылымдайды.", "Edit if needed, then let VERA structure it."],
   transcriptHint: ["VERA могла ослышаться — поправьте товар, число или причину, если что-то не так.", "VERA қате естуі мүмкін — тауарды, санды немесе себепті түзетіңіз.", "VERA can mishear — fix the product, number or reason if anything's off."],
   transcriptPh: [
-    "напр. Списать 3 котлеты, упали на пол в Aktau Mall, без удержания.",
-    "мыс. 3 котлетаны есептен шығару, Aktau Mall-да еденге түсті, ұстаусыз.",
-    "e.g. Write off 3 beef cutlets, fell on the floor at Aktau Mall, without deduction.",
+    "напр. Списать 2 чизбургера курица х2 на Turan 55d, ошибочный заказ, без удержания.",
+    "мыс. Turan 55d-та 2 тауық чизбургер x2, қате тапсырыс, ұстаусыз.",
+    "e.g. Write off 2 chicken cheeseburgers x2 at Turan 55d, wrong order, without deduction.",
   ],
   structuring: ["Структурирую…", "Құрылымдауда…", "Structuring…"],
   structureWithVera: ["Структурировать с VERA", "VERA-мен құрылымдау", "Structure with VERA"],
@@ -222,6 +222,8 @@ const D: Dict = {
   syncedToIiko: ["Синхронизировано с Iiko", "Iiko-мен синхрондалды", "Synced to Iiko"],
   syncFailedRetry: ["Ошибка синхр. — повторите в Iiko-центре", "Синхр. қатесі — Iiko орталығында қайталаңыз", "Sync failed — retry in Iiko center"],
   approvedLabel: ["Одобрено", "Мақұлданды", "Approved"],
+  unknownEmployee: ["Неизвестный сотрудник", "Белгісіз қызметкер", "Unknown employee"],
+  unknownStatus: ["Неизвестный статус", "Белгісіз мәртебе", "Unknown status"],
   // backend status -> localized chip label
   stDraft: ["Черновик", "Жоба", "Draft"],
   stMissingInfo: ["Не хватает данных", "Деректер жетіспейді", "Missing info"],
@@ -230,6 +232,15 @@ const D: Dict = {
   minAgo: ["мин назад", "мин бұрын", "min ago"],
   hAgo: ["ч назад", "сағ бұрын", "h ago"],
   dAgo: ["дн назад", "күн бұрын", "d ago"],
+  minuteOne: ["минуту назад", "мин бұрын", "min ago"],
+  minuteFew: ["минуты назад", "мин бұрын", "min ago"],
+  minuteMany: ["минут назад", "мин бұрын", "min ago"],
+  hourOne: ["час назад", "сағ бұрын", "h ago"],
+  hourFew: ["часа назад", "сағ бұрын", "h ago"],
+  hourMany: ["часов назад", "сағ бұрын", "h ago"],
+  dayOne: ["день назад", "күн бұрын", "d ago"],
+  dayFew: ["дня назад", "күн бұрын", "d ago"],
+  dayMany: ["дней назад", "күн бұрын", "d ago"],
 };
 
 let current: Lang = ((): Lang => {
@@ -248,6 +259,16 @@ function liveLang(): Lang {
   } catch {}
   return current;
 }
+export function currentLang(): Lang {
+  return liveLang();
+}
+
+export function localeForLang(lang: Lang = currentLang()): string {
+  if (lang === "kz") return "kk-KZ";
+  if (lang === "en") return "en-GB";
+  return "ru-RU";
+}
+
 export function translate(key: string, lang: Lang = liveLang()): string {
   const row = D[key];
   return row ? row[idx[lang]] : key;

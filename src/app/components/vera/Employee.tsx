@@ -3,7 +3,7 @@ import { AnimatePresence, motion, type Variants } from "motion/react";
 import {
   House, Microphone, ClipboardText, Package, User, CaretLeft, Check, Sparkle,
   Camera, ArrowRight, MagnifyingGlass, PencilSimple, ForkKnife, Clock,
-  CheckCircle, Tray, CaretRight, SignOut,
+  CheckCircle, Tray, CaretRight, SignOut, Warning,
 } from "./icons";
 import { Shell, PageHead, type NavItem } from "./Shell";
 import { Button, StatusLabel, AnimatedNumber, Avatar, Tag } from "./ui";
@@ -15,7 +15,7 @@ import {
 } from "./store";
 import type { Extraction, CreateFields } from "./api";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
-import { translate as T } from "./i18n";
+import { localeForLang, translate as T } from "./i18n";
 import { getPrefs, setPref, haptic } from "./prefs";
 
 const navItems = (): NavItem[] => [
@@ -214,7 +214,7 @@ function LiveClock() {
     const id = window.setInterval(() => setT(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);
-  return <span className="font-mono tabular-nums">{t.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>;
+  return <span className="font-mono tabular-nums">{t.toLocaleTimeString(localeForLang(), { hour: "2-digit", minute: "2-digit" })}</span>;
 }
 
 function RadialGauge({ value, target }: { value: number; target: number }) {
@@ -405,6 +405,15 @@ function Profile({ onExit }: { onExit: () => void }) {
   const total = mine.reduce((s, r) => s + r.loss, 0);
   const [opts, setOpts] = useState(getPrefs);
   const [savingPoint, setSavingPoint] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const saveTradePoint = (tradePointId: string | null) => {
+    setProfileError(null);
+    setSavingPoint(true);
+    updateMe({ tradePointId })
+      .catch(() => setProfileError(T("profileSaveError")))
+      .finally(() => setSavingPoint(false));
+  };
 
   return (
     <div className="px-5 max-w-2xl">
@@ -442,7 +451,7 @@ function Profile({ onExit }: { onExit: () => void }) {
                 <button
                   key={tp.id}
                   disabled={savingPoint}
-                  onClick={() => { const next = on ? null : tp.id; setSavingPoint(true); updateMe({ tradePointId: next }).finally(() => setSavingPoint(false)); }}
+                  onClick={() => saveTradePoint(on ? null : tp.id)}
                   className={`rounded-full px-4 py-2.5 text-[14px] font-semibold transition-colors disabled:opacity-60 ${on ? "bg-[var(--vera-strawberry)] text-[var(--vera-accent-cream)]" : "bg-white/70 text-[var(--vera-cocoa)] border border-[#f0d8cf]"}`}
                 >
                   {tp.name}
@@ -450,6 +459,12 @@ function Profile({ onExit }: { onExit: () => void }) {
               );
             })}
           </div>
+          {profileError && (
+            <div className="mt-3 flex items-center gap-2 rounded-2xl bg-[var(--vera-berry)]/10 px-3.5 py-2.5 text-[12.5px] font-medium text-[var(--vera-berry)]">
+              <Warning size={15} />
+              <span>{profileError}</span>
+            </div>
+          )}
         </div>
       )}
       <h3 className="mt-8 text-[16px]">{T("preferences")}</h3>
@@ -797,4 +812,3 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
 function Chip({ children, on, onClick }: { children: React.ReactNode; on: boolean; onClick: () => void }) {
   return <motion.button whileTap={{ scale: 0.95 }} onClick={onClick} className={`rounded-full px-5 py-3 font-semibold transition-colors ${on ? "bg-[var(--vera-strawberry)] text-[var(--vera-accent-cream)]" : "bg-white/70 text-[var(--vera-cocoa)] border border-[#f0d8cf]"}`}>{children}</motion.button>;
 }
-

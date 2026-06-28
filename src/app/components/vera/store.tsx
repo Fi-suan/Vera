@@ -8,7 +8,7 @@ import {
 } from "react";
 import { ApiError, api } from "./api";
 import type { CreateFields, Extraction } from "./api";
-import { translate as T } from "./i18n";
+import { currentLang, localeForLang, translate as T } from "./i18n";
 
 /* ================================================================== */
 /* VERA data layer.                                                    */
@@ -19,7 +19,7 @@ import { translate as T } from "./i18n";
 export type Role = "employee" | "manager";
 export type Status = "pending" | "approved" | "rejected";
 export type Sync = "idle" | "syncing" | "synced" | "failed";
-export type Category = "Meat" | "Dairy" | "Bakery" | "Produce" | "Seafood" | "Prepared";
+export type Category = "Burger" | "Side" | "Combo" | "Drink" | "Add-on" | "Prepared";
 
 export type Employee = { id: string; name: string; role: string; point: string; hue: number; tradePointId?: string | null };
 export type Product = { id: string; name: string; category: Category; unit: string; cost: number };
@@ -31,6 +31,7 @@ export type WriteOffUi = {
   statusLabel: string;
   statusTone: "neutral" | "warning" | "success" | "danger" | "info";
   costLabel: string;
+  employeeName: string;
   missingFieldLabels: string[];
   sync: { status: string; label: string; tone: string; documentId?: string | null };
   actions: {
@@ -82,28 +83,50 @@ export type Draft = {
 };
 
 const DEFAULT_EMPLOYEES: Employee[] = [
-  { id: "e1", name: "Aigerim Yusupova", role: "Shift lead", point: "Aktau Mall", hue: 348 },
-  { id: "e2", name: "Daniyar Sembin", role: "Line cook", point: "Dostyk Plaza", hue: 18 },
-  { id: "e3", name: "Madina Karimova", role: "Barista", point: "Aktau Mall", hue: 286 },
-  { id: "e4", name: "Ruslan Beketov", role: "Stock keeper", point: "Mega Silk Way", hue: 200 },
-  { id: "e5", name: "Aliya Tursyn", role: "Pastry chef", point: "Dostyk Plaza", hue: 150 },
-  { id: "e6", name: "Timur Aldiyar", role: "Line cook", point: "Esentai Gourmet", hue: 42 },
+  { id: "e1", name: "Aigerim Yusupova", role: "Shift lead", point: "Bahandi Astana — Turan 55d", hue: 348 },
+  { id: "e2", name: "Daniyar Sembin", role: "Line cook", point: "Bahandi Astana — Khan Shatyr", hue: 18 },
+  { id: "e3", name: "Madina Karimova", role: "Cashier", point: "Bahandi Astana — Mega Silk Way", hue: 286 },
+  { id: "e4", name: "Ruslan Beketov", role: "Stock keeper", point: "Bahandi Astana — Zhenis 28", hue: 200 },
+  { id: "e5", name: "Aliya Tursyn", role: "Shift lead", point: "Bahandi Astana — Asia Park", hue: 150 },
+  { id: "e6", name: "Timur Aldiyar", role: "Line cook", point: "Bahandi Astana — Baitursynuly 34", hue: 42 },
 ];
 
 export let EMPLOYEES: Employee[] = DEFAULT_EMPLOYEES;
 
 /* Default catalog (fallback before bootstrap loads the real one from the API). */
 export const PRODUCTS: Product[] = [
-  { id: "p-beef-cutlets", name: "Beef cutlets", category: "Meat", unit: "pcs", cost: 710 },
-  { id: "p-chicken-fillet", name: "Chicken fillet", category: "Meat", unit: "kg", cost: 2200 },
-  { id: "p-mozzarella", name: "Mozzarella", category: "Dairy", unit: "kg", cost: 4480 },
-  { id: "p-cream", name: "Heavy cream", category: "Dairy", unit: "L", cost: 1650 },
-  { id: "p-croissants", name: "Croissants", category: "Bakery", unit: "pcs", cost: 315 },
-  { id: "p-sourdough", name: "Sourdough loaf", category: "Bakery", unit: "pcs", cost: 980 },
-  { id: "p-tomatoes", name: "Cherry tomatoes", category: "Produce", unit: "kg", cost: 1280 },
-  { id: "p-avocado", name: "Avocado", category: "Produce", unit: "pcs", cost: 690 },
-  { id: "p-salmon", name: "Salmon fillet", category: "Seafood", unit: "kg", cost: 9550 },
-  { id: "p-caesar", name: "Caesar bowls", category: "Prepared", unit: "pcs", cost: 1740 },
+  { id: "p-bahandi-p001", name: "Бургер говядина", category: "Burger", unit: "pcs", cost: 735 },
+  { id: "p-bahandi-p002", name: "Бургер говядина х2", category: "Burger", unit: "pcs", cost: 1165 },
+  { id: "p-bahandi-p003", name: "Чизбургер говядина", category: "Burger", unit: "pcs", cost: 830 },
+  { id: "p-bahandi-p004", name: "Чизбургер говядина х2", category: "Burger", unit: "pcs", cost: 1260 },
+  { id: "p-bahandi-p005", name: "Бургер курица", category: "Burger", unit: "pcs", cost: 625 },
+  { id: "p-bahandi-p006", name: "Бургер курица х2", category: "Burger", unit: "pcs", cost: 945 },
+  { id: "p-bahandi-p007", name: "Чизбургер курица", category: "Burger", unit: "pcs", cost: 720 },
+  { id: "p-bahandi-p008", name: "Чизбургер курица х2", category: "Burger", unit: "pcs", cost: 1040 },
+  { id: "p-bahandi-p009", name: "Бургер микс x2", category: "Burger", unit: "pcs", cost: 1055 },
+  { id: "p-bahandi-p010", name: "Чизбургер микс x2", category: "Burger", unit: "pcs", cost: 1150 },
+  { id: "p-bahandi-p011", name: "Картофель фри", category: "Side", unit: "pcs", cost: 300 },
+  { id: "p-bahandi-p012", name: "Комбо чизбургер говядина", category: "Combo", unit: "pcs", cost: 1610 },
+  { id: "p-bahandi-p013", name: "Комбо чизбургер говядина х2", category: "Combo", unit: "pcs", cost: 2040 },
+  { id: "p-bahandi-p014", name: "Комбо чизбургер курица", category: "Combo", unit: "pcs", cost: 1500 },
+  { id: "p-bahandi-p015", name: "Комбо чизбургер курица х2", category: "Combo", unit: "pcs", cost: 1820 },
+  { id: "p-bahandi-p016", name: "Комбо чизбургер микс x2", category: "Combo", unit: "pcs", cost: 1930 },
+  { id: "p-bahandi-p017", name: "Coca-cola 0,5 л", category: "Drink", unit: "bottle", cost: 320 },
+  { id: "p-bahandi-p018", name: "Coca-cola 1 л", category: "Drink", unit: "bottle", cost: 550 },
+  { id: "p-bahandi-p019", name: "Coca-cola без сахара", category: "Drink", unit: "bottle", cost: 320 },
+  { id: "p-bahandi-p020", name: "Fanta", category: "Drink", unit: "bottle", cost: 320 },
+  { id: "p-bahandi-p021", name: "Sprite", category: "Drink", unit: "bottle", cost: 320 },
+  { id: "p-bahandi-p022", name: "Fuse tea", category: "Drink", unit: "bottle", cost: 330 },
+  { id: "p-bahandi-p023", name: "Bonaqua", category: "Drink", unit: "bottle", cost: 190 },
+  { id: "p-bahandi-p024", name: "Piko", category: "Drink", unit: "pack", cost: 210 },
+  { id: "p-bahandi-p025", name: "Компот Bahandi", category: "Drink", unit: "cup", cost: 250 },
+  { id: "p-bahandi-p026", name: "Айран", category: "Drink", unit: "bottle", cost: 220 },
+  { id: "p-bahandi-p027", name: "Schweppes", category: "Drink", unit: "bottle", cost: 430 },
+  { id: "p-bahandi-p028", name: "Соус барбекью 25 г", category: "Add-on", unit: "pcs", cost: 95 },
+  { id: "p-bahandi-p029", name: "Соус кетчуп 25 г", category: "Add-on", unit: "pcs", cost: 90 },
+  { id: "p-bahandi-p030", name: "Соус сырный 25 г", category: "Add-on", unit: "pcs", cost: 100 },
+  { id: "p-bahandi-p031", name: "Халапеньо", category: "Add-on", unit: "portion", cost: 85 },
+  { id: "p-bahandi-p032", name: "Сыр Гауда 25 г", category: "Add-on", unit: "pcs", cost: 95 },
 ];
 
 function hueFromId(id: string) {
@@ -125,7 +148,7 @@ const toFrontRole = (backendRole: string): Role => (backendRole === "employee" ?
 export type TradePoint = { id: string; name: string };
 
 function toProduct(p: { id: string; name: string; category: string; unit: string; costPrice: number }): Product {
-  const category = (["Meat", "Dairy", "Bakery", "Produce", "Seafood", "Prepared"].includes(p.category)
+  const category = (["Burger", "Side", "Combo", "Drink", "Add-on", "Prepared"].includes(p.category)
     ? p.category
     : "Prepared") as Category;
   return { id: p.id, name: p.name, category, unit: p.unit, cost: p.costPrice };
@@ -338,19 +361,56 @@ export function useStore() {
   return c;
 }
 
-export const tenge = (n: number) => `${Math.round(n).toLocaleString("ru-RU")} ₸`;
-export const tengeShort = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K ₸` : `${Math.round(n)} ₸`);
+export const tenge = (n: number) => `${Math.round(n).toLocaleString(localeForLang())} ₸`;
+export const tengeShort = (n: number) => {
+  const rounded = Math.round(n);
+  const locale = localeForLang();
+  if (rounded >= 1000) {
+    return `${new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(rounded)} ₸`;
+  }
+  return `${rounded.toLocaleString(locale)} ₸`;
+};
+
+function pluralKey(value: number, base: "minute" | "hour" | "day") {
+  if (currentLang() !== "ru") {
+    return base === "minute" ? "minAgo" : base === "hour" ? "hAgo" : "dAgo";
+  }
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${base}One`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${base}Few`;
+  return `${base}Many`;
+}
 
 export const timeAgo = (ts: number) => {
   const m = Math.floor((Date.now() - ts) / 60000);
   if (m < 1) return T("justNow");
-  if (m < 60) return `${m} ${T("minAgo")}`;
+  if (m < 60) return `${m} ${T(pluralKey(m, "minute"))}`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} ${T("hAgo")}`;
-  return `${Math.floor(h / 24)} ${T("dAgo")}`;
+  if (h < 24) return `${h} ${T(pluralKey(h, "hour"))}`;
+  const d = Math.floor(h / 24);
+  return `${d} ${T(pluralKey(d, "day"))}`;
 };
 
-export const empById = (id: string) => EMPLOYEES.find((e) => e.id === id) ?? EMPLOYEES[0];
+export const empById = (id: string) => EMPLOYEES.find((e) => e.id === id) ?? {
+  id,
+  name: T("unknownEmployee"),
+  role: "",
+  point: "—",
+  hue: hueFromId(id),
+};
+
+export const employeeForRequest = (r: Pick<WriteOff, "employeeId" | "ui">) => {
+  const found = EMPLOYEES.find((e) => e.id === r.employeeId);
+  if (found) return found;
+  return {
+    id: r.employeeId,
+    name: r.ui?.employeeName ?? T("unknownEmployee"),
+    role: "",
+    point: "—",
+    hue: hueFromId(r.employeeId),
+  };
+};
 
 export function useAnalytics() {
   const { requests } = useStore();
@@ -368,14 +428,14 @@ export function useAnalytics() {
 
     const days = Array.from({ length: 7 }).map((_, i) => {
       const dayStart = now - (6 - i) * D;
-      const label = new Date(dayStart).toLocaleDateString("en-US", { weekday: "short" });
+      const label = new Date(dayStart).toLocaleDateString(localeForLang(), { weekday: "short" });
       const loss = requests
         .filter((r) => r.status !== "rejected" && r.createdAt >= dayStart && r.createdAt < dayStart + D)
         .reduce((s, r) => s + r.loss, 0);
       return { label, loss };
     });
 
-    const byCategory = (["Meat", "Dairy", "Bakery", "Produce", "Seafood", "Prepared"] as Category[])
+    const byCategory = (["Burger", "Side", "Combo", "Drink", "Add-on", "Prepared"] as Category[])
       .map((cat) => ({ cat, loss: requests.filter((r) => r.category === cat && r.status !== "rejected").reduce((s, r) => s + r.loss, 0) }))
       .filter((x) => x.loss > 0)
       .sort((a, b) => b.loss - a.loss);
@@ -396,10 +456,10 @@ export function useAnalytics() {
 }
 
 export const CATEGORY_COLOR: Record<Category, string> = {
-  Meat: "#f2555f",
-  Dairy: "#f6b95e",
-  Bakery: "#d98c5f",
-  Produce: "#68c7a2",
-  Seafood: "#5fa8d9",
+  Burger: "#f2555f",
+  Side: "#f6b95e",
+  Combo: "#68c7a2",
+  Drink: "#5fa8d9",
+  "Add-on": "#b86fd9",
   Prepared: "#b86fd9",
 };

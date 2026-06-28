@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ChartLineUp, Tray, Table as TableIcon, UsersThree, ArrowsClockwise,
@@ -7,9 +7,8 @@ import {
 } from "./icons";
 import { Shell, PageHead, type NavItem } from "./Shell";
 import { Button, StatusLabel, AnimatedNumber, Avatar, Tag } from "./ui";
-import { LossTrend, CategoryBars, PointDonut } from "./charts";
 import {
-  useStore, useAnalytics, tenge, tengeShort, timeAgo, empById, EMPLOYEES,
+  useStore, useAnalytics, tenge, tengeShort, timeAgo, employeeForRequest,
   CATEGORY_COLOR, type WriteOff,
 } from "./store";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
@@ -22,6 +21,10 @@ const NAV: NavItem[] = [
   { id: "employees", label: "Team", Icon: UsersThree },
   { id: "sync", label: "Iiko", Icon: ArrowsClockwise },
 ];
+
+const LossTrend = lazy(() => import("./charts").then((m) => ({ default: m.LossTrend })));
+const CategoryBars = lazy(() => import("./charts").then((m) => ({ default: m.CategoryBars })));
+const PointDonut = lazy(() => import("./charts").then((m) => ({ default: m.PointDonut })));
 
 const fade = {
   initial: { opacity: 0, y: 14 },
@@ -54,10 +57,14 @@ const STATUS_LABEL_KEY: Record<string, string> = {
 function statusView(r: WriteOff) {
   const key = STATUS_LABEL_KEY[r.backendStatus];
   return {
-    label: key ? T(key) : (r.ui?.statusLabel ?? r.status),
+    label: key ? T(key) : T("unknownStatus"),
     tone: TONE_KEY[r.ui?.statusTone ?? "neutral"] ?? "idle",
     pulse: r.backendStatus === "pending_review" || r.backendStatus === "syncing_to_iiko",
   };
+}
+
+function ChartFallback({ height = 200 }: { height?: number }) {
+  return <div className="w-full rounded-2xl bg-white/45" style={{ height }} />;
 }
 
 export function Manager({ onExit }: { onExit: () => void }) {
@@ -116,11 +123,15 @@ function Overview({ onQueue }: { onQueue: () => void }) {
       <div className="mt-7 grid gap-5">
         <div className="border-t border-[#ecd5cc] pt-6">
           <div className="flex items-center justify-between mb-2"><h3 className="text-[17px]">{T("lossTrend")}</h3><Tag color="#f2555f">{tengeShort(a.weekLoss)}</Tag></div>
-          <LossTrend data={a.days} />
+          <Suspense fallback={<ChartFallback />}>
+            <LossTrend data={a.days} />
+          </Suspense>
         </div>
         <div className="border-t border-[#ecd5cc] pt-6">
           <h3 className="text-[17px] mb-3">{T("byPoint")}</h3>
-          <PointDonut data={a.byPoint} />
+          <Suspense fallback={<ChartFallback />}>
+            <PointDonut data={a.byPoint} />
+          </Suspense>
           <div className="mt-3 space-y-1.5">
             {a.byPoint.map((p, i) => (
               <div key={p.point} className="flex items-center justify-between text-[13px]">
@@ -135,14 +146,16 @@ function Overview({ onQueue }: { onQueue: () => void }) {
       <div className="mt-6 grid gap-5">
         <div className="border-t border-[#ecd5cc] pt-6">
           <h3 className="text-[17px] mb-2">{T("byCategory")}</h3>
-          <CategoryBars data={a.byCategory} />
+          <Suspense fallback={<ChartFallback height={Math.max(140, a.byCategory.length * 42)} />}>
+            <CategoryBars data={a.byCategory} />
+          </Suspense>
           <div className="mt-2 flex flex-wrap gap-2">{a.byCategory.map((c) => <Tag key={c.cat} color={CATEGORY_COLOR[c.cat]}>{c.cat}</Tag>)}</div>
         </div>
         <div className="border-t border-[#ecd5cc] pt-6">
           <h3 className="text-[17px] mb-3">{T("needsAttention")}</h3>
           <div className="divide-y divide-[#f0d8cf]">
             {attention.slice(0, 4).map((r) => {
-              const e = empById(r.employeeId);
+              const e = employeeForRequest(r);
               return (
                 <div key={r.id} className="flex items-center gap-3 py-3">
                   <Avatar name={e.name} hue={e.hue} size={36} />
@@ -171,7 +184,7 @@ function Queue({ onOpen }: { onOpen: (id: string) => void }) {
       ) : (
         <div className="mt-6 grid gap-4">
           {pending.map((r, i) => {
-            const e = empById(r.employeeId);
+            const e = employeeForRequest(r);
             return (
               <motion.button key={r.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, type: "spring", stiffness: 140, damping: 20 }} whileHover={{ y: -4 }} onClick={() => onOpen(r.id)} className="group relative overflow-hidden rounded-[28px] bg-white/70 text-left border border-white/70 shadow-[0_24px_50px_-32px_rgba(184,50,66,0.4)]">
                 {r.photo && <div className="h-36 overflow-hidden"><ImageWithFallback src={r.photo} alt={r.product} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /></div>}
@@ -195,7 +208,7 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const rows = requests.filter((r) => {
-    const e = empById(r.employeeId);
+    const e = employeeForRequest(r);
     return (r.product + r.point + e.name).toLowerCase().includes(q.toLowerCase()) && (status === "all" || r.status === status);
   });
 
@@ -216,7 +229,7 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
 
       <div className="mt-5 divide-y divide-[#f0d8cf]">
         {rows.map((r) => {
-          const e = empById(r.employeeId);
+          const e = employeeForRequest(r);
           return (
             <button key={r.id} onClick={() => onOpen(r.id)} className="w-full flex items-center gap-3 py-3.5 text-left">
               <span className="size-10 rounded-xl grid place-items-center shrink-0" style={{ background: `${CATEGORY_COLOR[r.category]}22`, color: CATEGORY_COLOR[r.category] }}><ForkKnife size={18} /></span>
@@ -234,7 +247,7 @@ function Team() {
   const { requests } = useStore();
   const team = Object.values(
     requests.reduce((acc, r) => {
-      const e = empById(r.employeeId);
+      const e = employeeForRequest(r);
       acc[e.id] ??= { id: e.id, name: e.name, hue: e.hue, total: 0, pending: 0, loss: 0 };
       acc[e.id].total += 1;
       if (r.status === "pending") acc[e.id].pending += 1;
@@ -315,7 +328,7 @@ function EmptyBlock({ label }: { label: string }) {
 }
 
 function Drawer({ r, onClose, onApprove, onReject }: { r: WriteOff; onClose: () => void; onApprove: () => void; onReject: (note: string) => void }) {
-  const e = empById(r.employeeId);
+  const e = employeeForRequest(r);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [note, setNote] = useState("");

@@ -70,6 +70,19 @@ export function createOpenApiSpec() {
           responses: { 200: ok({ type: "object", properties: { user: schemaRef("User") }, required: ["user"] }), 401: error("Unauthorized") },
         },
       },
+      "/me": {
+        patch: {
+          tags: ["Auth"],
+          summary: "Update current user's profile",
+          security: bearerAuth,
+          requestBody: jsonBody(schemaRef("UpdateMeRequest")),
+          responses: {
+            200: ok({ type: "object", properties: { user: schemaRef("User") }, required: ["user"] }),
+            400: error("Invalid profile update"),
+            401: error("Unauthorized"),
+          },
+        },
+      },
       "/bootstrap": {
         get: {
           tags: ["Bootstrap"],
@@ -294,6 +307,14 @@ function schemas() {
       type: "object",
       properties: { email: { type: "string", format: "email" }, password: { type: "string" } },
       required: ["email", "password"],
+    },
+    UpdateMeRequest: {
+      type: "object",
+      properties: {
+        name: { type: "string", minLength: 2 },
+        tradePointId: nullableString,
+      },
+      additionalProperties: false,
     },
     AuthResponse: {
       type: "object",

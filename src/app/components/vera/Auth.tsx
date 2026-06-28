@@ -4,10 +4,20 @@ import { Microphone, ShieldCheck, ArrowRight } from "./icons";
 import { VeraLogo } from "./brand";
 import type { Role } from "./store";
 import { useStore } from "./store";
+import { ApiError } from "./api";
 import { LANGS, translate, type Lang } from "./i18n";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 type Mode = "signin" | "signup";
+
+function authErrorKey(error: unknown, mode: Mode) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return "authInvalidCredentials";
+    if (error.status === 409) return "authAccountExists";
+    if (error.status === 400 || error.status === 422) return "authInvalidInput";
+  }
+  return mode === "signin" ? "signinError" : "signupError";
+}
 
 export function Auth({ onPick }: { onPick: (r: Role) => void }) {
   const { login, register } = useStore();
@@ -44,7 +54,7 @@ export function Auth({ onPick }: { onPick: (r: Role) => void }) {
         : await register({ name: name.trim(), email: email.trim().toLowerCase(), password, role });
       onPick(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t(mode === "signin" ? "signinError" : "signupError"));
+      setError(t(authErrorKey(e, mode)));
     } finally {
       setBusy(false);
     }
