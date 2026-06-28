@@ -207,6 +207,16 @@ export const api = {
     return data.user;
   },
 
+  /** Create an account and sign in (the backend returns a token on register). */
+  async register(input: { name: string; email: string; password: string; role: "employee" | "reviewer" }): Promise<BackendUser> {
+    const data = await req<{ user: BackendUser; accessToken: string }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    setToken(data.accessToken);
+    return data.user;
+  },
+
   async me(): Promise<BackendUser> {
     const data = await req<{ user: BackendUser }>("/auth/me");
     return data.user;

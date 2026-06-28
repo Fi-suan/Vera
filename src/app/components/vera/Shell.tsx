@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { type ReactNode } from "react";
 import type { IconType } from "./icons";
-import { SignOut, Bell } from "./icons";
+import { SignOut } from "./icons";
 import { Avatar } from "./ui";
 import { VeraLogo } from "./brand";
 import { translate as T } from "./i18n";
@@ -58,10 +58,6 @@ export function Shell({
             <div className="flex items-center gap-2.5">
               <button onClick={onExit} className="grid place-items-center size-9 rounded-full bg-white/18 text-[var(--vera-accent-cream)] active:scale-95 transition-transform" aria-label="Sign out">
                 <SignOut size={18} />
-              </button>
-              <button className="relative grid place-items-center size-9 rounded-full bg-white/18 text-[var(--vera-accent-cream)] active:scale-95 transition-transform" aria-label="Notifications">
-                <Bell size={18} />
-                <span className="absolute top-2 right-2 size-1.5 rounded-full bg-white" />
               </button>
               <Avatar name={who || "U"} hue={hue} size={36} />
             </div>

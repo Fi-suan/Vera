@@ -39,9 +39,22 @@ const TONE_KEY: Record<string, string> = {
   danger: "rejected",
   neutral: "idle",
 };
+/* Localise the chip from the backend status code so labels stay trilingual
+   (the backend's ui.statusLabel is English-only). */
+const STATUS_LABEL_KEY: Record<string, string> = {
+  draft: "stDraft",
+  missing_info: "stMissingInfo",
+  pending_review: "pendingReview",
+  approved: "approvedLabel",
+  syncing_to_iiko: "syncingShort",
+  synced_to_iiko: "syncedShort",
+  iiko_sync_failed: "syncFailedShort",
+  rejected: "rejected",
+};
 function statusView(r: WriteOff) {
+  const key = STATUS_LABEL_KEY[r.backendStatus];
   return {
-    label: r.ui?.statusLabel ?? r.status,
+    label: key ? T(key) : (r.ui?.statusLabel ?? r.status),
     tone: TONE_KEY[r.ui?.statusTone ?? "neutral"] ?? "idle",
     pulse: r.backendStatus === "pending_review" || r.backendStatus === "syncing_to_iiko",
   };
@@ -50,12 +63,12 @@ function statusView(r: WriteOff) {
 export function Manager({ onExit }: { onExit: () => void }) {
   const [tab, setTab] = useState("overview");
   const [openId, setOpenId] = useState<string | null>(null);
-  const { requests, approve, reject } = useStore();
+  const { requests, approve, reject, me } = useStore();
   const open = requests.find((r) => r.id === openId) ?? null;
 
   return (
     <>
-      <Shell nav={NAV} active={tab} onNav={setTab} roleLabel="Manager" user="Zarina Omarova" hue={324} onExit={onExit}>
+      <Shell nav={NAV} active={tab} onNav={setTab} roleLabel="Manager" user={me.name} hue={324} onExit={onExit}>
         <AnimatePresence mode="wait">
           <motion.div key={tab} {...fade}>
             {tab === "overview" && <Overview onQueue={() => setTab("queue")} />}
@@ -163,7 +176,7 @@ function Queue({ onOpen }: { onOpen: (id: string) => void }) {
               <motion.button key={r.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, type: "spring", stiffness: 140, damping: 20 }} whileHover={{ y: -4 }} onClick={() => onOpen(r.id)} className="group relative overflow-hidden rounded-[28px] bg-white/70 text-left border border-white/70 shadow-[0_24px_50px_-32px_rgba(184,50,66,0.4)]">
                 {r.photo && <div className="h-36 overflow-hidden"><ImageWithFallback src={r.photo} alt={r.product} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /></div>}
                 <div className="p-5">
-                  <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Avatar name={e.name} hue={e.hue} size={30} /><span className="text-[13px] font-semibold">{e.name}</span></div>{r.loss >= 5000 && <Tag color="#b83242">attention</Tag>}</div>
+                  <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Avatar name={e.name} hue={e.hue} size={30} /><span className="text-[13px] font-semibold">{e.name}</span></div>{r.loss >= 5000 && <Tag color="#b83242">{T("attentionTag")}</Tag>}</div>
                   <div className="mt-3 text-[18px] font-bold text-[var(--vera-cocoa)]">{r.qty} · {r.product}</div>
                   <div className="mt-1 flex items-center gap-1.5 text-[13px] text-[var(--vera-raspberry)]"><Sparkle size={13} /> {r.reason}</div>
                   <div className="mt-4 flex items-center justify-between"><span className="text-[13px] text-[var(--vera-rose-gray)]">{r.point} · {timeAgo(r.createdAt)}</span><span className="font-mono font-bold text-[var(--vera-berry)]">{tenge(r.loss)}</span></div>
@@ -188,15 +201,15 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <div className="px-5">
-      <PageHead title={T("recordsTitle")} subtitle={`${requests.length} write-offs across every point.`} />
+      <PageHead title={T("recordsTitle")} subtitle={`${requests.length} ${T("recordsSubCount")}`} />
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px] max-w-md">
           <MagnifyingGlass size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--vera-rose-gray)]" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search product, employee, point…" className="w-full rounded-full border border-[#f0d8cf] bg-white/70 py-3 pl-11 pr-4 outline-none focus:border-[var(--vera-strawberry)]" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={T("searchRecordsPh")} className="w-full rounded-full border border-[#f0d8cf] bg-white/70 py-3 pl-11 pr-4 outline-none focus:border-[var(--vera-strawberry)]" />
         </div>
         <div className="flex gap-2">
           {(["all", "pending", "approved", "rejected"] as const).map((s) => (
-            <button key={s} onClick={() => setStatus(s)} className={`rounded-full px-4 py-2 text-[13px] font-bold capitalize transition-colors ${status === s ? "bg-[var(--vera-cocoa)] text-[var(--vera-cream)]" : "bg-white/60 text-[var(--vera-brown-gray)] hover:bg-white"}`}>{s}</button>
+            <button key={s} onClick={() => setStatus(s)} className={`rounded-full px-4 py-2 text-[13px] font-bold capitalize transition-colors ${status === s ? "bg-[var(--vera-cocoa)] text-[var(--vera-cream)]" : "bg-white/60 text-[var(--vera-brown-gray)] hover:bg-white"}`}>{T(s)}</button>
           ))}
         </div>
       </div>
@@ -231,18 +244,18 @@ function Team() {
   ).sort((a, b) => b.loss - a.loss);
   return (
     <div className="px-5">
-      <PageHead title={T("teamTitle")} subtitle="Who's reporting what, and how much loss it represents." />
+      <PageHead title={T("teamTitle")} subtitle={T("teamSub")} />
       {team.length === 0 ? (
-        <EmptyBlock label="No team activity yet. People appear here once they submit write-offs." />
+        <EmptyBlock label={T("noTeam")} />
       ) : (
         <div className="mt-6 grid gap-4">
           {team.map((e, i) => (
             <motion.div key={e.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="rounded-[26px] bg-white/65 p-5">
-              <div className="flex items-center gap-3"><Avatar name={e.name} hue={e.hue} size={48} /><div className="min-w-0"><div className="font-bold text-[var(--vera-cocoa)] truncate">{e.name}</div><div className="text-[13px] text-[var(--vera-rose-gray)]">{e.total} write-off{e.total === 1 ? "" : "s"}</div></div></div>
+              <div className="flex items-center gap-3"><Avatar name={e.name} hue={e.hue} size={48} /><div className="min-w-0"><div className="font-bold text-[var(--vera-cocoa)] truncate">{e.name}</div><div className="text-[13px] text-[var(--vera-rose-gray)]">{e.total} {T("teamMemberWriteoffs")}</div></div></div>
               <div className="mt-4 grid grid-cols-3 divide-x divide-[#f0d8cf] text-center">
-                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>{e.total}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Total</div></div>
-                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>{e.pending}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Pending</div></div>
-                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)] text-[14px]">{tengeShort(e.loss)}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">Loss</div></div>
+                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>{e.total}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">{T("statTotal")}</div></div>
+                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)]" style={{ fontFamily: "Montserrat" }}>{e.pending}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">{T("pending")}</div></div>
+                <div className="px-1"><div className="font-bold text-[var(--vera-cocoa)] text-[14px]">{tengeShort(e.loss)}</div><div className="text-[12px] text-[var(--vera-rose-gray)]">{T("statLoss")}</div></div>
               </div>
             </motion.div>
           ))}
@@ -256,13 +269,13 @@ function SyncCenter() {
   const { requests, retrySync } = useStore();
   const approved = requests.filter((r) => r.status === "approved");
   const groups = [
-    { key: "failed", label: "Needs attention", tone: "failed" },
-    { key: "syncing", label: "In progress", tone: "syncing" },
-    { key: "synced", label: "Synced", tone: "synced" },
+    { key: "failed", label: T("needsAttention"), tone: "failed" },
+    { key: "syncing", label: T("syncInProgress"), tone: "syncing" },
+    { key: "synced", label: T("syncedShort"), tone: "synced" },
   ] as const;
   return (
     <div className="px-5">
-      <PageHead title={T("iikoTitle")} subtitle="Approved write-offs flow into Iiko automatically." />
+      <PageHead title={T("iikoTitle")} subtitle={T("iikoSub")} />
       {groups.map((g) => {
         const items = approved.filter((r) => r.sync === g.key);
         if (!items.length) return null;
@@ -275,7 +288,7 @@ function SyncCenter() {
                   <span className="size-10 rounded-xl grid place-items-center shrink-0" style={{ background: `${CATEGORY_COLOR[r.category]}22`, color: CATEGORY_COLOR[r.category] }}><ForkKnife size={18} /></span>
                   <div className="min-w-0 flex-1"><div className="font-semibold text-[var(--vera-cocoa)] truncate">{r.doc} · {r.qty} {r.product}</div><div className="text-[13px] text-[var(--vera-rose-gray)] truncate">{r.point} · {tenge(r.loss)}</div></div>
                   {r.sync === "failed" ? (
-                    <Button size="sm" variant="soft" onClick={() => retrySync(r.id)}><ArrowsClockwise size={16} /> Retry</Button>
+                    <Button size="sm" variant="soft" onClick={() => retrySync(r.id)}><ArrowsClockwise size={16} /> {T("retrySyncAction")}</Button>
                   ) : r.sync === "syncing" ? (
                     <motion.span animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }} className="text-[var(--vera-amber)]"><ArrowsClockwise size={18} /></motion.span>
                   ) : (
@@ -287,7 +300,7 @@ function SyncCenter() {
           </div>
         );
       })}
-      {approved.length === 0 && <EmptyBlock label="Nothing approved yet — approvals will appear here to sync." />}
+      {approved.length === 0 && <EmptyBlock label={T("nothingApproved")} />}
     </div>
   );
 }
@@ -306,14 +319,14 @@ function Drawer({ r, onClose, onApprove, onReject }: { r: WriteOff; onClose: () 
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const reasons = ["Photo unclear", "Wrong product", "Missing information", "Other"];
+  const reasons = [T("rejPhotoUnclear"), T("rejWrongProduct"), T("rejMissingInfo"), T("rejOther")];
   const fields: [string, string][] = [
-    ["Quantity", r.qty],
-    ["Trade point", r.point],
-    ["Reason", r.reason],
-    ["Deduction", r.deduction === "without" ? "Without deduction" : "With deduction"],
-    ["Employee", e.name],
-    ["Document", r.doc],
+    [T("fieldQuantity"), r.qty],
+    [T("fieldTradePoint"), r.point],
+    [T("fieldReason"), r.reason],
+    [T("fieldDeduction"), r.deduction === "without" ? T("withoutDeduction") : T("withDeduction")],
+    [T("fieldEmployee"), e.name],
+    [T("fieldDocument"), r.doc],
   ];
 
   return (
@@ -335,31 +348,31 @@ function Drawer({ r, onClose, onApprove, onReject }: { r: WriteOff; onClose: () 
           </div>
 
           <div className="mt-5">
-            <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Sparkle size={16} /><span className="text-[13px] font-bold uppercase tracking-wide">AI comment</span></div>
+            <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Sparkle size={16} /><span className="text-[13px] font-bold uppercase tracking-wide">{T("aiComment")}</span></div>
             <p className="mt-2 text-[15px] leading-relaxed text-[var(--vera-cocoa)]">{r.comment}</p>
           </div>
 
-          {r.transcript && <div className="mt-4"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Original transcript</span><p className="mt-1.5 text-[13px] italic text-[var(--vera-brown-gray)]">“{r.transcript}”</p></div>}
+          {r.transcript && <div className="mt-4"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">{T("originalTranscript")}</span><p className="mt-1.5 text-[13px] italic text-[var(--vera-brown-gray)]">“{r.transcript}”</p></div>}
 
-          <div className="mt-5 flex items-center justify-between"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Est. loss</span><span className="font-bold text-[var(--vera-berry)] text-[18px]">{tenge(r.loss)}</span></div>
+          <div className="mt-5 flex items-center justify-between"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">{T("estLoss")}</span><span className="font-bold text-[var(--vera-berry)] text-[18px]">{tenge(r.loss)}</span></div>
 
           {(r.ui?.actions.canApprove || r.ui?.actions.canReject) && !rejecting && (
-            <div className="mt-8 flex items-center gap-3">{r.ui?.actions.canReject && <Button variant="danger" onClick={() => setRejecting(true)}><X size={18} /> Reject</Button>}{r.ui?.actions.canApprove && <Button full onClick={onApprove}><Check size={18} /> Approve & sync</Button>}</div>
+            <div className="mt-8 flex items-center gap-3">{r.ui?.actions.canReject && <Button variant="danger" onClick={() => setRejecting(true)}><X size={18} /> {T("rejectAction")}</Button>}{r.ui?.actions.canApprove && <Button full onClick={onApprove}><Check size={18} /> {T("approveSync")}</Button>}</div>
           )}
 
           <AnimatePresence>
             {rejecting && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-8 overflow-hidden">
-                <h3 className="text-[18px]">Reason for rejection</h3>
+                <h3 className="text-[18px]">{T("rejectReasonTitle")}</h3>
                 <div className="mt-3 flex flex-wrap gap-2.5">{reasons.map((x) => <button key={x} onClick={() => setReason(x)} className={`rounded-full px-4 py-2.5 text-[14px] font-semibold transition-colors ${reason === x ? "bg-[var(--vera-strawberry)] text-[var(--vera-accent-cream)]" : "bg-[var(--vera-cream)] text-[var(--vera-cocoa)] border border-[#f0d8cf]"}`}>{x}</button>)}</div>
-                <textarea value={note} onChange={(ev) => setNote(ev.target.value)} rows={3} placeholder="Add a short note for the employee…" className="mt-3 w-full rounded-2xl border border-[#f0d8cf] bg-[var(--vera-cream)] px-4 py-3 outline-none focus:border-[var(--vera-strawberry)] resize-none" />
-                <div className="mt-3 flex items-center gap-3"><Button variant="soft" onClick={() => setRejecting(false)}>Cancel</Button><Button full variant="danger" disabled={!reason} onClick={() => onReject(note.trim() ? `${reason}: ${note.trim()}` : (reason as string))}>Send rejection</Button></div>
+                <textarea value={note} onChange={(ev) => setNote(ev.target.value)} rows={3} placeholder={T("rejectNotePh")} className="mt-3 w-full rounded-2xl border border-[#f0d8cf] bg-[var(--vera-cream)] px-4 py-3 outline-none focus:border-[var(--vera-strawberry)] resize-none" />
+                <div className="mt-3 flex items-center gap-3"><Button variant="soft" onClick={() => setRejecting(false)}>{T("cancel")}</Button><Button full variant="danger" disabled={!reason} onClick={() => onReject(note.trim() ? `${reason}: ${note.trim()}` : (reason as string))}>{T("sendRejection")}</Button></div>
               </motion.div>
             )}
           </AnimatePresence>
 
           {["approved", "syncing_to_iiko", "synced_to_iiko", "iiko_sync_failed"].includes(r.backendStatus) && (
-            <div className="mt-8 rounded-2xl bg-[var(--vera-blush)] p-4"><StatusLabel tone={r.sync} pulse={r.sync === "syncing"}>{r.sync === "syncing" ? "Syncing to Iiko…" : r.sync === "synced" ? "Synced to Iiko" : r.sync === "failed" ? "Sync failed — retry in Iiko center" : "Approved"}</StatusLabel></div>
+            <div className="mt-8 rounded-2xl bg-[var(--vera-blush)] p-4"><StatusLabel tone={r.sync} pulse={r.sync === "syncing"}>{r.sync === "syncing" ? T("syncToIiko") : r.sync === "synced" ? T("syncedToIiko") : r.sync === "failed" ? T("syncFailedRetry") : T("approvedLabel")}</StatusLabel></div>
           )}
         </div>
       </motion.div>

@@ -28,6 +28,21 @@ const D: Dict = {
   passwordPh: ["Введите пароль", "Құпиясөзді енгізіңіз", "Enter your password"],
   signinError: ["Не удалось войти. Проверьте email и пароль.", "Кіру мүмкін болмады. Email мен құпиясөзді тексеріңіз.", "Could not sign in. Check your email and password."],
   continue: ["Продолжить", "Жалғастыру", "Continue"],
+  // sign up
+  signupTitle: ["Создать аккаунт", "Аккаунт құру", "Create account"],
+  signupSub: ["Заполните данные и выберите роль.", "Деректерді толтырып, рөлді таңдаңыз.", "Fill in your details and pick a role."],
+  createAccount: ["Создать аккаунт", "Аккаунт құру", "Create account"],
+  noAccountQ: ["Нет аккаунта?", "Аккаунт жоқ па?", "No account?"],
+  haveAccountQ: ["Уже есть аккаунт?", "Аккаунт бар ма?", "Have an account?"],
+  signInLink: ["Войти", "Кіру", "Sign in"],
+  signUpLink: ["Создать", "Құру", "Sign up"],
+  signupError: ["Не удалось создать аккаунт. Возможно, email уже занят.", "Аккаунт құру мүмкін болмады. Email бос емес шығар.", "Could not create the account. The email may already be taken."],
+  passwordHint: ["Минимум 8 символов", "Кемінде 8 таңба", "At least 8 characters"],
+  roleSection: ["Я работаю как", "Мен былай жұмыс істеймін", "I work as"],
+  // profile — trade point
+  yourTradePoint: ["Ваша точка", "Сіздің нүктеңіз", "Your trade point"],
+  yourTradePointSub: ["Подставляется при записи списания.", "Списание жазғанда автоматты қойылады.", "Pre-filled when you capture a write-off."],
+  notSet: ["Не выбрана", "Таңдалмаған", "Not set"],
   protected: ["Защищено · код не покидает точку", "Қорғалған · код нүктеден шықпайды", "Protected · codes never leave the point"],
   chooseRole: ["Как вы работаете сегодня?", "Бүгін қалай жұмыс істейсіз?", "How are you working today?"],
   back: ["Назад", "Артқа", "Back"],
@@ -136,6 +151,9 @@ const D: Dict = {
   tapMicSpeak: ["Нажмите микрофон и говорите свободно.", "Микрофонды басып, еркін сөйлеңіз.", "Tap the mic and speak naturally."],
   finishRecording: ["Завершить запись", "Жазуды аяқтау", "Finish recording"],
   typeInstead: ["Ввести вручную", "Қолмен енгізу", "Type instead"],
+  voiceHintTitle: ["Например, скажите:", "Мысалы, айтыңыз:", "For example, say:"],
+  voiceHintEx1: ["«3 котлеты упали на пол в Aktau Mall, без удержания»", "«3 котлета Aktau Mall-да еденге түсті, ұстаусыз»", "“3 cutlets fell on the floor at Aktau Mall, no deduction”"],
+  voiceHintEx2: ["«Списать 2 кг лосося — истёк срок»", "«2 кг лосось — мерзімі өтті»", "“Write off 2 kg of salmon — expired”"],
   // capture flow — transcript
   yourWords: ["Ваши слова", "Сіздің сөздеріңіз", "Your words"],
   reviewTranscript: ["Проверьте текст", "Мәтінді тексеріңіз", "Review the transcript"],
@@ -175,6 +193,43 @@ const D: Dict = {
   transcribeFailed: ["Не удалось распознать — введите или отредактируйте текст ниже.", "Тану мүмкін болмады — төмендегі мәтінді енгізіңіз немесе өңдеңіз.", "Couldn't transcribe — type or edit the text below."],
   extractionFailed: ["Не удалось структурировать", "Құрылымдау мүмкін болмады", "Extraction failed"],
   couldNotSubmit: ["Не удалось отправить", "Жіберу мүмкін болмады", "Could not submit"],
+  // manager — misc
+  attentionTag: ["внимание", "назар", "attention"],
+  searchRecordsPh: ["Поиск: товар, сотрудник, точка…", "Іздеу: тауар, қызметкер, нүкте…", "Search product, employee, point…"],
+  recordsSubCount: ["списаний по всем точкам.", "нүктелер бойынша списаниелер.", "write-offs across every point."],
+  // manager — team
+  teamMemberWriteoffs: ["списаний", "списание", "write-offs"],
+  statTotal: ["Всего", "Барлығы", "Total"],
+  statLoss: ["Потери", "Шығын", "Loss"],
+  // manager — sync center
+  syncInProgress: ["В процессе", "Орындалуда", "In progress"],
+  retrySyncAction: ["Повторить", "Қайталау", "Retry"],
+  nothingApproved: ["Одобренных пока нет — они появятся здесь для синхронизации.", "Әзірге мақұлданғандар жоқ — олар синхрондау үшін осында көрінеді.", "Nothing approved yet — approvals will appear here to sync."],
+  // manager — drawer
+  fieldEmployee: ["Сотрудник", "Қызметкер", "Employee"],
+  fieldDocument: ["Документ", "Құжат", "Document"],
+  aiComment: ["Комментарий ИИ", "ЖИ түсініктемесі", "AI comment"],
+  originalTranscript: ["Исходный текст", "Бастапқы мәтін", "Original transcript"],
+  rejectReasonTitle: ["Причина отклонения", "Қабылдамау себебі", "Reason for rejection"],
+  rejectNotePh: ["Короткий комментарий для сотрудника…", "Қызметкерге қысқа түсініктеме…", "Add a short note for the employee…"],
+  cancel: ["Отмена", "Бас тарту", "Cancel"],
+  sendRejection: ["Отправить отказ", "Бас тартуды жіберу", "Send rejection"],
+  rejPhotoUnclear: ["Фото нечёткое", "Фото анық емес", "Photo unclear"],
+  rejWrongProduct: ["Неверный товар", "Қате тауар", "Wrong product"],
+  rejMissingInfo: ["Не хватает данных", "Деректер жетіспейді", "Missing information"],
+  rejOther: ["Другое", "Басқа", "Other"],
+  syncToIiko: ["Синхронизация с Iiko…", "Iiko-мен синхрондау…", "Syncing to Iiko…"],
+  syncedToIiko: ["Синхронизировано с Iiko", "Iiko-мен синхрондалды", "Synced to Iiko"],
+  syncFailedRetry: ["Ошибка синхр. — повторите в Iiko-центре", "Синхр. қатесі — Iiko орталығында қайталаңыз", "Sync failed — retry in Iiko center"],
+  approvedLabel: ["Одобрено", "Мақұлданды", "Approved"],
+  // backend status -> localized chip label
+  stDraft: ["Черновик", "Жоба", "Draft"],
+  stMissingInfo: ["Не хватает данных", "Деректер жетіспейді", "Missing info"],
+  // relative time
+  justNow: ["только что", "жаңа ғана", "just now"],
+  minAgo: ["мин назад", "мин бұрын", "min ago"],
+  hAgo: ["ч назад", "сағ бұрын", "h ago"],
+  dAgo: ["дн назад", "күн бұрын", "d ago"],
 };
 
 let current: Lang = ((): Lang => {

@@ -8,6 +8,7 @@ import {
 } from "react";
 import { ApiError, api } from "./api";
 import type { CreateFields, Extraction } from "./api";
+import { translate as T } from "./i18n";
 
 /* ================================================================== */
 /* VERA data layer.                                                    */
@@ -79,10 +80,6 @@ export type Draft = {
   photo?: string;
   transcript?: string;
 };
-
-/* Reference catalog. In production these come from the backend
-   (api.listEmployees / api.listProducts); kept here as defaults. */
-export const POINTS = ["Aktau Mall", "Dostyk Plaza", "Mega Silk Way", "Esentai Gourmet"];
 
 const DEFAULT_EMPLOYEES: Employee[] = [
   { id: "e1", name: "Aigerim Yusupova", role: "Shift lead", point: "Aktau Mall", hue: 348 },
@@ -181,6 +178,7 @@ type Store = {
   tradePoints: TradePoint[];
   authReady: boolean;
   login: (email: string, password: string) => Promise<Role>;
+  register: (input: { name: string; email: string; password: string; role: Role }) => Promise<Role>;
   restoreSession: () => Promise<Role | null>;
   logout: () => void;
   transcribe: (audio: Blob) => Promise<{ transcript: string; provider: string }>;
@@ -213,6 +211,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const user = await api.login(email, password);
+      const boot = await api.bootstrap();
+      const frontRole = applyBootstrap(user, boot, { setEmployees, setProducts, setTradePoints, setMe });
+      setRole(frontRole);
+      await refresh(frontRole);
+      return frontRole;
+    } finally {
+      setLoading(false);
+      setAuthReady(true);
+    }
+  }, [refresh]);
+
+  const register = useCallback(async (input: { name: string; email: string; password: string; role: Role }): Promise<Role> => {
+    setLoading(true);
+    try {
+      const user = await api.register({
+        name: input.name,
+        email: input.email,
+        password: input.password,
+        role: input.role === "manager" ? "reviewer" : "employee",
+      });
       const boot = await api.bootstrap();
       const frontRole = applyBootstrap(user, boot, { setEmployees, setProducts, setTradePoints, setMe });
       setRole(frontRole);
@@ -301,8 +319,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const value = useMemo<Store>(
-    () => ({ me: me ?? DEFAULT_EMPLOYEES[0], loading, requests, employees, products, tradePoints, authReady, login, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync }),
-    [me, loading, requests, employees, products, tradePoints, authReady, login, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync]
+    () => ({ me: me ?? DEFAULT_EMPLOYEES[0], loading, requests, employees, products, tradePoints, authReady, login, register, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync }),
+    [me, loading, requests, employees, products, tradePoints, authReady, login, register, restoreSession, logout, transcribe, extract, submitWriteOff, approve, reject, retrySync]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -319,11 +337,11 @@ export const tengeShort = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K
 
 export const timeAgo = (ts: number) => {
   const m = Math.floor((Date.now() - ts) / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m} min ago`;
+  if (m < 1) return T("justNow");
+  if (m < 60) return `${m} ${T("minAgo")}`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} h ago`;
-  return `${Math.floor(h / 24)} d ago`;
+  if (h < 24) return `${h} ${T("hAgo")}`;
+  return `${Math.floor(h / 24)} ${T("dAgo")}`;
 };
 
 export const empById = (id: string) => EMPLOYEES.find((e) => e.id === id) ?? EMPLOYEES[0];
@@ -356,7 +374,10 @@ export function useAnalytics() {
       .filter((x) => x.loss > 0)
       .sort((a, b) => b.loss - a.loss);
 
-    const byPoint = POINTS.map((p) => ({
+    // Derive trade points from the real requests, not a hardcoded list, so the
+    // breakdown matches whatever points the backend actually returns.
+    const pointNames = Array.from(new Set(requests.map((r) => r.point).filter((p) => p && p !== "—")));
+    const byPoint = pointNames.map((p) => ({
       point: p,
       loss: requests.filter((r) => r.point === p && r.status !== "rejected").reduce((s, r) => s + r.loss, 0),
       count: requests.filter((r) => r.point === p).length,

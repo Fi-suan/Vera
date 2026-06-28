@@ -16,6 +16,7 @@ import {
 import type { Extraction, CreateFields } from "./api";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { translate as T } from "./i18n";
+import { getPrefs, setPref, haptic, getHomePoint, setHomePoint } from "./prefs";
 
 const navItems = (): NavItem[] => [
   { id: "home", label: T("home"), Icon: House },
@@ -264,49 +265,6 @@ function RadialGauge({ value, target }: { value: number; target: number }) {
   );
 }
 
-function StatTile({ tone, Icon, value, label, onClick }: { tone: "pending" | "approved"; Icon: any; value: number; label: string; onClick: () => void }) {
-  const color = tone === "pending" ? "var(--vera-amber)" : "var(--vera-mint)";
-  return (
-    <motion.button
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      className="relative overflow-hidden rounded-[26px] bg-[var(--vera-white-cream)] border border-[#f0d8cf] p-4 text-left shadow-[0_18px_40px_-30px_rgba(184,50,66,0.4)]"
-    >
-      <span className="grid place-items-center size-9 rounded-full" style={{ background: `${color}22`, color }}>
-        <Icon size={18} />
-      </span>
-      <div className="mt-2 text-[28px] font-bold text-[var(--vera-cocoa)] leading-none" style={{ fontFamily: "Montserrat" }}>
-        <AnimatedNumber value={value} />
-      </div>
-      <div className="mt-1 text-[12px] font-semibold text-[var(--vera-rose-gray)]">{label}</div>
-      {tone === "pending" && value > 0 && (
-        <motion.span
-          className="absolute top-4 right-4 size-2 rounded-full"
-          style={{ background: color }}
-          animate={{ scale: [1, 1.6, 1], opacity: [1, 0.4, 1] }}
-          transition={{ duration: 1.6, repeat: Infinity }}
-        />
-      )}
-    </motion.button>
-  );
-}
-
-function QuickChip({ Icon, label, onClick }: { Icon: any; label: string; onClick: () => void }) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.94 }}
-      whileHover={{ y: -3 }}
-      onClick={onClick}
-      className="shrink-0 w-[88px] flex flex-col items-center gap-2 rounded-[22px] bg-[var(--vera-white-cream)] border border-[#f0d8cf] px-3 py-4 shadow-[0_14px_30px_-26px_rgba(184,50,66,0.5)]"
-    >
-      <span className="grid place-items-center size-11 rounded-2xl bg-[var(--vera-blush)] text-[var(--vera-strawberry)]">
-        <Icon size={22} />
-      </span>
-      <span className="text-[12px] font-semibold text-[var(--vera-cocoa)] text-center leading-tight">{label}</span>
-    </motion.button>
-  );
-}
-
 const STATUS_TONE: Record<string, { c: string; label: string }> = {
   pending: { c: "var(--vera-amber)", label: "Pending" },
   approved: { c: "var(--vera-mint)", label: "Approved" },
@@ -442,10 +400,11 @@ function Products() {
 }
 
 function Profile({ onExit }: { onExit: () => void }) {
-  const { me, requests } = useStore();
+  const { me, requests, tradePoints } = useStore();
   const mine = requests.filter((r) => r.employeeId === me.id);
   const total = mine.reduce((s, r) => s + r.loss, 0);
-  const [opts, setOpts] = useState({ haptics: true, voiceHints: true, autoPhoto: false });
+  const [opts, setOpts] = useState(getPrefs);
+  const [homePoint, setHomePointState] = useState(getHomePoint);
 
   return (
     <div className="px-5 max-w-2xl">
@@ -472,6 +431,26 @@ function Profile({ onExit }: { onExit: () => void }) {
           </div>
         ))}
       </div>
+      {tradePoints.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-[16px]">{T("yourTradePoint")}</h3>
+          <p className="text-[13px] text-[var(--vera-rose-gray)]">{T("yourTradePointSub")}</p>
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            {tradePoints.map((tp) => {
+              const on = homePoint === tp.id;
+              return (
+                <button
+                  key={tp.id}
+                  onClick={() => { const next = on ? null : tp.id; setHomePoint(next); setHomePointState(next); }}
+                  className={`rounded-full px-4 py-2.5 text-[14px] font-semibold transition-colors ${on ? "bg-[var(--vera-strawberry)] text-[var(--vera-accent-cream)]" : "bg-white/70 text-[var(--vera-cocoa)] border border-[#f0d8cf]"}`}
+                >
+                  {tp.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <h3 className="mt-8 text-[16px]">{T("preferences")}</h3>
       <div className="mt-2 divide-y divide-[#f0d8cf]">
         {([
@@ -481,7 +460,7 @@ function Profile({ onExit }: { onExit: () => void }) {
         ] as const).map(([k, t, d]) => (
           <div key={k} className="flex items-center justify-between py-4">
             <div><div className="font-semibold text-[var(--vera-cocoa)]">{t}</div><div className="text-[13px] text-[var(--vera-rose-gray)]">{d}</div></div>
-            <Toggle on={opts[k]} onToggle={() => setOpts((o) => ({ ...o, [k]: !o[k] }))} />
+            <Toggle on={opts[k]} onToggle={() => setOpts(setPref(k, !opts[k]))} />
           </div>
         ))}
       </div>
@@ -519,6 +498,12 @@ const PROGRESS: Record<Step, number> = { record: 1, transcript: 2, extract: 3, m
 
 function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () => void }) {
   const store = useStore();
+  const [prefs] = useState(getPrefs);
+  // The employee's saved default trade point, validated against the live catalog.
+  const homePointId = useMemo(() => {
+    const h = getHomePoint();
+    return h && store.tradePoints.some((t) => t.id === h) ? h : null;
+  }, [store.tradePoints]);
   const [step, setStep] = useState<Step>("record");
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -529,7 +514,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
 
   // Structured fields (prefilled from extraction, editable in the missing step).
   const [productId, setProductId] = useState<string | null>(null);
-  const [tradePointId, setTradePointId] = useState<string | null>(null);
+  const [tradePointId, setTradePointId] = useState<string | null>(homePointId);
   const [quantity, setQuantity] = useState<number | null>(null);
   const [unit, setUnit] = useState<string | null>(null);
   const [deductionType, setDeductionType] = useState<"with_deduction" | "without_deduction" | null>(null);
@@ -551,7 +536,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
   function applyExtraction(x: Extraction) {
     setExt(x);
     setProductId(x.productId);
-    setTradePointId(x.tradePointId);
+    setTradePointId(x.tradePointId ?? homePointId);
     setQuantity(x.quantity);
     setUnit(x.unit ?? store.products.find((p) => p.id === x.productId)?.unit ?? null);
     setDeductionType(x.deductionType);
@@ -569,6 +554,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
       mr.start();
       mediaRef.current = mr;
       setRecording(true);
+      haptic(8);
     } catch {
       // Mic blocked/unavailable — fall back to typing the transcript.
       setError(T("micUnavailable"));
@@ -584,6 +570,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
       mr.stop();
     });
     setRecording(false);
+    haptic(8);
     setBusy(true);
     setError(null);
     try {
@@ -604,7 +591,11 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
     try {
       const x = await store.extract(transcript.trim());
       applyExtraction(x);
-      setStep("extract");
+      // Auto-camera: when nothing is missing, skip the review screen and jump
+      // straight to the photo step (computed from the extraction, not state,
+      // since the setters above haven't flushed yet).
+      const willMiss = !x.productId || !(x.tradePointId ?? homePointId) || x.quantity == null || !x.deductionType;
+      setStep(prefs.autoPhoto && !willMiss ? "photo" : "extract");
     } catch (e) {
       setError(e instanceof Error ? e.message : T("extractionFailed"));
     } finally {
@@ -638,6 +629,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
     setError(null);
     try {
       await store.submitWriteOff({ fields: buildFields(), photoFile });
+      haptic([10, 40, 10]);
       setStep("done");
       window.setTimeout(onSubmitted, 1600);
     } catch (e) {
@@ -685,6 +677,13 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
               <p className="mt-8 text-[15px] leading-relaxed min-h-[48px] max-w-[34ch] text-[var(--vera-rose-gray)]">
                 {recording ? T("recordingTapFinish") : busy ? T("transcribingShort") : T("tapMicSpeak")}
               </p>
+              {prefs.voiceHints && !recording && !busy && (
+                <div className="mt-1 max-w-[34ch] space-y-1 text-[13px] text-[var(--vera-rose-gray)]">
+                  <p className="font-semibold text-[var(--vera-raspberry)]">{T("voiceHintTitle")}</p>
+                  <p className="italic">{T("voiceHintEx1")}</p>
+                  <p className="italic">{T("voiceHintEx2")}</p>
+                </div>
+              )}
               <Button full className="mt-6 max-w-[300px]" disabled={!recording || busy} onClick={stopAndTranscribe}>{T("finishRecording")}</Button>
               <button onClick={() => setStep("transcript")} className="mt-4 text-[13px] font-semibold text-[var(--vera-rose-gray)] underline">{T("typeInstead")}</button>
             </motion.div>
