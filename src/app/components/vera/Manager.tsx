@@ -121,22 +121,26 @@ function Overview({ onQueue }: { onQueue: () => void }) {
       </div>
 
       <div className="mt-7 grid gap-5">
-        <div className="border-t border-[#ecd5cc] pt-6">
+        <div className="min-w-0 overflow-hidden border-t border-[#ecd5cc] pt-6">
           <div className="flex items-center justify-between mb-2"><h3 className="text-[17px]">{T("lossTrend")}</h3><Tag color="#f2555f">{tengeShort(a.weekLoss)}</Tag></div>
-          <Suspense fallback={<ChartFallback />}>
-            <LossTrend data={a.days} />
-          </Suspense>
+          <div className="min-w-0">
+            <Suspense fallback={<ChartFallback />}>
+              <LossTrend data={a.days} />
+            </Suspense>
+          </div>
         </div>
-        <div className="border-t border-[#ecd5cc] pt-6">
+        <div className="min-w-0 overflow-hidden border-t border-[#ecd5cc] pt-6">
           <h3 className="text-[17px] mb-3">{T("byPoint")}</h3>
-          <Suspense fallback={<ChartFallback />}>
-            <PointDonut data={a.byPoint} />
-          </Suspense>
+          <div className="min-w-0">
+            <Suspense fallback={<ChartFallback />}>
+              <PointDonut data={a.byPoint} />
+            </Suspense>
+          </div>
           <div className="mt-3 space-y-1.5">
             {a.byPoint.map((p, i) => (
-              <div key={p.point} className="flex items-center justify-between text-[13px]">
-                <span className="flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ background: ["#f2555f", "#f6b95e", "#68c7a2", "#5fa8d9"][i % 4] }} />{p.point}</span>
-                <span className="tabular-nums font-bold text-[var(--vera-cocoa)]">{tengeShort(p.loss)}</span>
+              <div key={p.point} className="flex items-center justify-between gap-2 text-[13px]">
+                <span className="flex min-w-0 items-center gap-2"><span className="size-2.5 shrink-0 rounded-full" style={{ background: ["#f2555f", "#f6b95e", "#68c7a2", "#5fa8d9"][i % 4] }} /><span className="truncate">{p.point}</span></span>
+                <span className="shrink-0 tabular-nums font-bold text-[var(--vera-cocoa)]">{tengeShort(p.loss)}</span>
               </div>
             ))}
           </div>
@@ -144,11 +148,13 @@ function Overview({ onQueue }: { onQueue: () => void }) {
       </div>
 
       <div className="mt-6 grid gap-5">
-        <div className="border-t border-[#ecd5cc] pt-6">
+        <div className="min-w-0 overflow-hidden border-t border-[#ecd5cc] pt-6">
           <h3 className="text-[17px] mb-2">{T("byCategory")}</h3>
-          <Suspense fallback={<ChartFallback height={Math.max(140, a.byCategory.length * 42)} />}>
-            <CategoryBars data={a.byCategory} />
-          </Suspense>
+          <div className="min-w-0">
+            <Suspense fallback={<ChartFallback height={Math.max(140, a.byCategory.length * 42)} />}>
+              <CategoryBars data={a.byCategory} />
+            </Suspense>
+          </div>
           <div className="mt-2 flex flex-wrap gap-2">{a.byCategory.map((c) => <Tag key={c.cat} color={CATEGORY_COLOR[c.cat]}>{categoryLabel(c.cat)}</Tag>)}</div>
         </div>
         <div className="border-t border-[#ecd5cc] pt-6">
