@@ -13,10 +13,6 @@ const NAV_KEY: Record<string, string> = {
   home: "home", new: "capture", requests: "requests", products: "products", profile: "profile",
   overview: "overview", queue: "queue", records: "records", employees: "team", sync: "iiko",
 };
-function signedInName(): string {
-  try { return (localStorage.getItem("vera.user") || "").trim(); } catch { return ""; }
-}
-
 /* ------------------------------------------------------------------ */
 /* App architecture: a coral header band carrying identity, with the   */
 /* page content in a cream sheet that overlaps it. Full-width tab bar.  */
@@ -41,7 +37,7 @@ export function Shell({
   onExit: () => void;
   children: ReactNode;
 }) {
-  const who = signedInName() || user;
+  const who = user;
   const first = (who || "").trim().split(" ")[0] || "—";
   const roleText = roleLabel === "Manager" ? T("managerRole") : T("employeeRole");
   return (

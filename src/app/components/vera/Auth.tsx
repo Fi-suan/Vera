@@ -29,7 +29,6 @@ export function Auth({ onPick }: { onPick: (r: Role) => void }) {
     setError(null);
     try {
       const role = await login(email.trim().toLowerCase(), password);
-      try { localStorage.setItem("vera.user", email.trim()); } catch {}
       onPick(role);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("signinError"));

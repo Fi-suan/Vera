@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, type Variants } from "motion/react";
 import {
   House, Microphone, ClipboardText, Package, User, CaretLeft, Check, Sparkle,
   Camera, ArrowRight, MagnifyingGlass, PencilSimple, ForkKnife, Clock,
@@ -25,13 +25,11 @@ const navItems = (): NavItem[] => [
   { id: "profile", label: T("profile"), Icon: User },
 ];
 
-function myName() { try { return (localStorage.getItem("vera.user") || "").trim(); } catch { return ""; } }
-
 const fade = {
   initial: { opacity: 0, y: 14 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -10 },
-  transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
+  transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
 };
 
 export function Employee({ onExit }: { onExit: () => void }) {
@@ -46,7 +44,7 @@ export function Employee({ onExit }: { onExit: () => void }) {
 
   return (
     <>
-      <Shell nav={navItems()} active={flow ? "new" : tab} onNav={nav} roleLabel="Employee" user={(myName() || me.name)} hue={me.hue} onExit={onExit}>
+      <Shell nav={navItems()} active={flow ? "new" : tab} onNav={nav} roleLabel="Employee" user={me.name} hue={me.hue} onExit={onExit}>
         <AnimatePresence mode="wait">
           <motion.div key={tab} {...fade}>
             {tab === "home" && <Dashboard onCapture={() => setFlow(true)} onTab={setTab} />}
@@ -64,11 +62,11 @@ export function Employee({ onExit }: { onExit: () => void }) {
   );
 }
 
-const stagger = {
+const stagger: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
 };
-const rise = {
+const rise: Variants = {
   hidden: { opacity: 0, y: 22 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 140, damping: 18 } },
 };
@@ -179,7 +177,7 @@ function Dashboard({ onCapture, onTab }: { onCapture: () => void; onTab: (t: str
           <button onClick={() => onTab("requests")} className="inline-flex items-center gap-1 text-[14px] font-semibold text-[var(--vera-strawberry)]">{T("all")} <ArrowRight size={15} /></button>
         </div>
         {mine.length === 0 ? (
-          <Empty label={T("noWriteoffs")} onAction={onCapture} actionLabel="Capture" />
+          <Empty label={T("noWriteoffs")} onAction={onCapture} actionLabel={T("capture")} />
         ) : (
           <div className="relative mt-4 pl-5">
             <motion.span
@@ -259,7 +257,7 @@ function RadialGauge({ value, target }: { value: number; target: number }) {
           <AnimatedNumber value={value} format={(v) => tengeShort(v)} />
         </div>
         <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[var(--vera-strawberry)]/12 px-2 py-0.5 text-[10px] font-bold text-[var(--vera-strawberry)]">
-          {Math.round(pct * 100)}% of cap
+          {Math.round(pct * 100)}% {T("ofCapPct")}
         </div>
       </div>
     </div>
@@ -373,10 +371,10 @@ function RequestRow({ r, i, expandable }: { r: WriteOff; i: number; expandable?:
           <div className="font-semibold text-[var(--vera-cocoa)] truncate">{r.qty} · {r.product}</div>
           <div className="text-[12.5px] text-[var(--vera-rose-gray)] truncate">{r.reason}</div>
           <div className="mt-1.5 flex items-center gap-2">
-            <StatusChip tone={r.status} pulse={r.status === "pending"}>{r.status}</StatusChip>
+            <StatusChip tone={r.status} pulse={r.status === "pending"}>{T(r.status)}</StatusChip>
             {r.status === "approved" && r.sync !== "idle" && (
               <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold" style={{ color: r.sync === "failed" ? "var(--vera-berry)" : "var(--vera-mint)" }}>
-                {r.sync === "syncing" ? "Syncing…" : r.sync === "synced" ? "Synced" : "Sync failed"}
+                {r.sync === "syncing" ? T("syncingShort") : r.sync === "synced" ? T("syncedShort") : T("syncFailedShort")}
               </span>
             )}
           </div>
@@ -393,7 +391,7 @@ function RequestRow({ r, i, expandable }: { r: WriteOff; i: number; expandable?:
             <div className="mb-4 ml-[68px] rounded-2xl bg-white/70 border border-[#ece4dd] p-4">
               <p className="text-[13.5px] text-[var(--vera-cocoa)] leading-relaxed">{r.comment}</p>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-[var(--vera-rose-gray)]">
-                <span>{r.doc}</span><span>·</span><span>{r.point}</span><span>·</span><span>{r.deduction === "without" ? "Without" : "With"} deduction</span>
+                <span>{r.doc}</span><span>·</span><span>{r.point}</span><span>·</span><span>{r.deduction === "without" ? T("withoutDeduction") : T("withDeduction")}</span>
               </div>
               {r.reviewerNote && <div className="mt-3 rounded-xl bg-[var(--vera-berry)]/10 px-3.5 py-2.5 text-[12.5px] font-medium text-[var(--vera-berry)]">{r.reviewerNote}</div>}
             </div>
@@ -432,7 +430,7 @@ function Products() {
                 </div>
                 <div className="text-right">
                   <div className="font-mono font-bold text-[var(--vera-cocoa)] text-[14px]">{tenge(p.cost)}</div>
-                  <div className="text-[12px] text-[var(--vera-rose-gray)]">per {p.unit}</div>
+                  <div className="text-[12px] text-[var(--vera-rose-gray)]">{T("per")} {p.unit}</div>
                 </div>
               </div>
             ))}
@@ -455,9 +453,9 @@ function Profile({ onExit }: { onExit: () => void }) {
       <div className="mt-5 relative overflow-hidden rounded-[24px] p-5 text-[var(--vera-accent-cream)]" style={{ background: "linear-gradient(150deg, #ec5158, var(--vera-strawberry) 55%, var(--vera-berry))", boxShadow: "0 24px 48px -28px rgba(168,44,57,0.7)" }}>
         <div className="absolute -top-10 -right-8 size-40 rounded-full bg-white/15 blur-2xl" />
         <div className="relative flex items-center gap-4">
-          <div className="rounded-full ring-2 ring-white/40"><Avatar name={(myName() || me.name)} hue={me.hue} size={64} /></div>
+          <div className="rounded-full ring-2 ring-white/40"><Avatar name={me.name} hue={me.hue} size={64} /></div>
           <div className="min-w-0">
-            <h2 className="text-[22px] text-[var(--vera-accent-cream)] truncate">{(myName() || me.name)}</h2>
+            <h2 className="text-[22px] text-[var(--vera-accent-cream)] truncate">{me.name}</h2>
             <div className="mt-0.5 inline-flex items-center rounded-full bg-white/20 px-2.5 py-0.5 text-[12px] font-semibold">{me.point}</div>
           </div>
         </div>
@@ -573,7 +571,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
       setRecording(true);
     } catch {
       // Mic blocked/unavailable — fall back to typing the transcript.
-      setError("Microphone unavailable — type what happened instead.");
+      setError(T("micUnavailable"));
       setStep("transcript");
     }
   }
@@ -592,7 +590,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
       const res = await store.transcribe(blob);
       setTranscript(res.transcript);
     } catch {
-      setError("Couldn't transcribe — type or edit the text below.");
+      setError(T("transcribeFailed"));
     } finally {
       setBusy(false);
       setStep("transcript");
@@ -608,7 +606,7 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
       applyExtraction(x);
       setStep("extract");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Extraction failed");
+      setError(e instanceof Error ? e.message : T("extractionFailed"));
     } finally {
       setBusy(false);
     }
@@ -643,18 +641,18 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
       setStep("done");
       window.setTimeout(onSubmitted, 1600);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not submit");
+      setError(e instanceof Error ? e.message : T("couldNotSubmit"));
     } finally {
       setBusy(false);
     }
   }
 
   const reviewRows = [
-    { k: "product", label: "Product", value: product?.name ?? ext?.productName ?? "—" },
-    { k: "qty", label: "Quantity", value: quantity != null ? `${quantity}${unit ? ` ${unit}` : ""}` : "—" },
-    { k: "point", label: "Trade point", value: point?.name ?? "—" },
-    { k: "reason", label: "Reason", value: reason || "—" },
-    { k: "deduction", label: "Deduction", value: deductionType === "with_deduction" ? "With deduction" : deductionType === "without_deduction" ? "Without deduction" : "—" },
+    { k: "product", label: T("fieldProduct"), value: product?.name ?? ext?.productName ?? "—" },
+    { k: "qty", label: T("fieldQuantity"), value: quantity != null ? `${quantity}${unit ? ` ${unit}` : ""}` : "—" },
+    { k: "point", label: T("fieldTradePoint"), value: point?.name ?? "—" },
+    { k: "reason", label: T("fieldReason"), value: reason || "—" },
+    { k: "deduction", label: T("fieldDeduction"), value: deductionType === "with_deduction" ? T("withDeduction") : deductionType === "without_deduction" ? T("withoutDeduction") : "—" },
   ];
 
   const progress = PROGRESS[step];
@@ -680,38 +678,39 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
         <AnimatePresence mode="wait">
           {step === "record" && (
             <motion.div key="rec" {...fade} className="flex-1 flex flex-col items-center justify-center text-center">
-              <h2 className="text-[22px]">{recording ? "Listening…" : "Tell VERA what happened"}</h2>
-              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)] max-w-[30ch]">Product, quantity, trade point, and deduction type.</p>
+              <h2 className="text-[22px]">{recording ? T("listening") : T("tellVera")}</h2>
+              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)] max-w-[30ch]">{T("tellVeraSub")}</p>
               <div className="my-8"><MicOrb active={recording} onClick={() => (recording ? stopAndTranscribe() : startRecording())} size={140} /></div>
               <Waveform active={recording} />
               <p className="mt-8 text-[15px] leading-relaxed min-h-[48px] max-w-[34ch] text-[var(--vera-rose-gray)]">
-                {recording ? "Recording… tap the mic to finish." : busy ? "Transcribing…" : "Tap the mic and speak naturally."}
+                {recording ? T("recordingTapFinish") : busy ? T("transcribingShort") : T("tapMicSpeak")}
               </p>
-              <Button full className="mt-6 max-w-[300px]" disabled={!recording || busy} onClick={stopAndTranscribe}>Finish recording</Button>
-              <button onClick={() => setStep("transcript")} className="mt-4 text-[13px] font-semibold text-[var(--vera-rose-gray)] underline">Type instead</button>
+              <Button full className="mt-6 max-w-[300px]" disabled={!recording || busy} onClick={stopAndTranscribe}>{T("finishRecording")}</Button>
+              <button onClick={() => setStep("transcript")} className="mt-4 text-[13px] font-semibold text-[var(--vera-rose-gray)] underline">{T("typeInstead")}</button>
             </motion.div>
           )}
 
           {step === "transcript" && (
             <motion.div key="tra" {...fade} className="flex-1 flex flex-col pt-8">
-              <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Microphone size={18} /><span className="font-bold">Your words</span></div>
-              <h2 className="mt-2 text-[24px]">Review the transcript</h2>
-              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)]">Edit if needed, then let VERA structure it.</p>
+              <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Microphone size={18} /><span className="font-bold">{T("yourWords")}</span></div>
+              <h2 className="mt-2 text-[24px]">{T("reviewTranscript")}</h2>
+              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)]">{T("reviewTranscriptSub")}</p>
               <textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
                 rows={6}
-                placeholder="e.g. Write off 3 beef cutlets, fell on the floor at Aktau Mall, without deduction."
+                placeholder={T("transcriptPh")}
                 className="mt-5 w-full rounded-2xl border-[1.5px] border-[#e6ded7] bg-white px-4 py-3.5 outline-none focus:border-[var(--vera-strawberry)] text-[15px] leading-relaxed"
               />
-              <div className="mt-auto pt-8"><Button full disabled={!transcript.trim() || busy} onClick={runExtraction}><Sparkle size={18} /> {busy ? "Structuring…" : "Structure with VERA"}</Button></div>
+              <p className="mt-3 flex items-start gap-1.5 text-[12.5px] text-[var(--vera-rose-gray)]"><PencilSimple size={14} className="mt-0.5 shrink-0" /> {T("transcriptHint")}</p>
+              <div className="mt-auto pt-8"><Button full disabled={!transcript.trim() || busy} onClick={runExtraction}><Sparkle size={18} /> {busy ? T("structuring") : T("structureWithVera")}</Button></div>
             </motion.div>
           )}
 
           {step === "extract" && (
             <motion.div key="ext" {...fade} className="flex-1 flex flex-col pt-8 overflow-y-auto">
-              <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Sparkle size={18} /><span className="font-bold">VERA structured your request</span>{ext && <span className="ml-auto text-[12px] font-semibold text-[var(--vera-rose-gray)]">{Math.round(ext.confidenceScore * 100)}% confident</span>}</div>
-              <h2 className="mt-2 text-[24px]">Check the details</h2>
+              <div className="flex items-center gap-2 text-[var(--vera-raspberry)]"><Sparkle size={18} /><span className="font-bold">{T("veraStructured")}</span>{ext && <span className="ml-auto text-[12px] font-semibold text-[var(--vera-rose-gray)]">{Math.round(ext.confidenceScore * 100)}% {T("confident")}</span>}</div>
+              <h2 className="mt-2 text-[24px]">{T("checkDetails")}</h2>
               <div className="mt-6 divide-y divide-[#f0d8cf]">
                 {reviewRows.map((f, i) => (
                   <motion.div key={f.k} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className="flex items-center justify-between py-4">
@@ -722,70 +721,70 @@ function Flow({ onClose, onSubmitted }: { onClose: () => void; onSubmitted: () =
               </div>
               {(ext?.aiGeneratedComment || ext?.comment) && (
                 <div className="mt-5">
-                  <p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Cleaned comment</p>
+                  <p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">{T("cleanedComment")}</p>
                   <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--vera-cocoa)]">{ext?.aiGeneratedComment ?? ext?.comment}</p>
                 </div>
               )}
-              <div className="mt-auto pt-8"><Button full onClick={() => setStep(hasMissing ? "missing" : "photo")}><Check size={18} /> {hasMissing ? "Add missing details" : "Looks correct"}</Button></div>
+              <div className="mt-auto pt-8"><Button full onClick={() => setStep(hasMissing ? "missing" : "photo")}><Check size={18} /> {hasMissing ? T("addMissingDetails") : T("looksCorrect")}</Button></div>
             </motion.div>
           )}
 
           {step === "missing" && (
             <motion.div key="mis" {...fade} className="flex-1 flex flex-col pt-8 overflow-y-auto">
-              <h2 className="text-[24px] max-w-[16ch]">Fill the missing details</h2>
-              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)]">Tap to fill — faster than typing.</p>
+              <h2 className="text-[24px] max-w-[16ch]">{T("fillMissing")}</h2>
+              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)]">{T("fillMissingSub")}</p>
               {needs.product && (
-                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Product</p><div className="flex flex-wrap gap-2.5">{store.products.map((p) => <Chip key={p.id} on={productId === p.id} onClick={() => { setProductId(p.id); setUnit(p.unit); }}>{p.name}</Chip>)}</div></div>
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">{T("fieldProduct")}</p><div className="flex flex-wrap gap-2.5">{store.products.map((p) => <Chip key={p.id} on={productId === p.id} onClick={() => { setProductId(p.id); setUnit(p.unit); }}>{p.name}</Chip>)}</div></div>
               )}
               {needs.point && (
-                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Trade point</p><div className="flex flex-wrap gap-2.5">{store.tradePoints.map((t) => <Chip key={t.id} on={tradePointId === t.id} onClick={() => setTradePointId(t.id)}>{t.name}</Chip>)}</div></div>
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">{T("fieldTradePoint")}</p><div className="flex flex-wrap gap-2.5">{store.tradePoints.map((t) => <Chip key={t.id} on={tradePointId === t.id} onClick={() => setTradePointId(t.id)}>{t.name}</Chip>)}</div></div>
               )}
               {needs.qty && (
-                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Quantity{unit ? ` (${unit})` : ""}</p>
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">{T("fieldQuantity")}{unit ? ` (${unit})` : ""}</p>
                   <input type="number" inputMode="decimal" min={0} step="0.1" value={quantity ?? ""} onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : null)} placeholder="0" className="w-40 rounded-2xl border-[1.5px] border-[#e6ded7] bg-white px-4 py-3 outline-none focus:border-[var(--vera-strawberry)] text-[16px]" /></div>
               )}
               {needs.deduction && (
-                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">Deduction</p><div className="flex flex-wrap gap-3"><Chip on={deductionType === "without_deduction"} onClick={() => setDeductionType("without_deduction")}>Without deduction</Chip><Chip on={deductionType === "with_deduction"} onClick={() => setDeductionType("with_deduction")}>With deduction</Chip></div></div>
+                <div className="mt-7"><p className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)] mb-3">{T("fieldDeduction")}</p><div className="flex flex-wrap gap-3"><Chip on={deductionType === "without_deduction"} onClick={() => setDeductionType("without_deduction")}>{T("withoutDeduction")}</Chip><Chip on={deductionType === "with_deduction"} onClick={() => setDeductionType("with_deduction")}>{T("withDeduction")}</Chip></div></div>
               )}
-              <div className="mt-auto pt-8"><Button full disabled={hasMissing} onClick={() => setStep("photo")}>Continue</Button></div>
+              <div className="mt-auto pt-8"><Button full disabled={hasMissing} onClick={() => setStep("photo")}>{T("continue")}</Button></div>
             </motion.div>
           )}
 
           {step === "photo" && (
             <motion.div key="pho" {...fade} className="flex-1 flex flex-col pt-8">
-              <h2 className="text-[24px]">Attach photo proof</h2>
-              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)] max-w-[34ch]">Take or upload a shot that clearly shows the product and damage.</p>
+              <h2 className="text-[24px]">{T("attachPhoto")}</h2>
+              <p className="mt-2 text-[14px] text-[var(--vera-brown-gray)] max-w-[34ch]">{T("attachPhotoSub")}</p>
               <label className="mt-6 relative grid place-items-center aspect-[4/3] overflow-hidden rounded-3xl border-[1.5px] border-dashed border-[#e0c8bf] bg-white/60 cursor-pointer">
                 {photoPreview ? (
                   <img src={photoPreview} alt="proof" className="absolute inset-0 size-full object-cover" />
                 ) : (
-                  <span className="flex flex-col items-center gap-2 text-[var(--vera-rose-gray)]"><Camera size={32} /><span className="text-[14px] font-semibold">Tap to take or upload</span></span>
+                  <span className="flex flex-col items-center gap-2 text-[var(--vera-rose-gray)]"><Camera size={32} /><span className="text-[14px] font-semibold">{T("tapTakeUpload")}</span></span>
                 )}
                 <input type="file" accept="image/*" capture="environment" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => { const f = e.target.files?.[0]; if (f) pickPhoto(f); }} />
               </label>
-              <div className="mt-auto pt-8 flex items-center gap-3">{photoPreview && <Button variant="soft" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}><Camera size={18} /> Retake</Button>}<Button full disabled={!photoFile} onClick={() => setStep("confirm")}>Continue</Button></div>
+              <div className="mt-auto pt-8 flex items-center gap-3">{photoPreview && <Button variant="soft" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}><Camera size={18} /> {T("retake")}</Button>}<Button full disabled={!photoFile} onClick={() => setStep("confirm")}>{T("continue")}</Button></div>
             </motion.div>
           )}
 
           {step === "confirm" && (
             <motion.div key="con" {...fade} className="flex-1 flex flex-col pt-8 overflow-y-auto">
-              <h2 className="text-[24px]">Ready to send</h2>
+              <h2 className="text-[24px]">{T("readyToSend")}</h2>
               {photoPreview && <div className="mt-5 overflow-hidden rounded-3xl"><img src={photoPreview} alt="proof" className="w-full h-44 object-cover" /></div>}
               <div className="mt-5 divide-y divide-[#f0d8cf]">
                 {reviewRows.map((f) => (
                   <div key={f.k} className="flex items-center justify-between py-3"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">{f.label}</span><span className="font-semibold text-[var(--vera-cocoa)] text-right max-w-[60%]">{f.value}</span></div>
                 ))}
-                <div className="flex items-center justify-between py-3"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">Est. loss</span><span className="font-bold text-[var(--vera-berry)]">{tenge(estLoss)}</span></div>
+                <div className="flex items-center justify-between py-3"><span className="text-[13px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">{T("estLoss")}</span><span className="font-bold text-[var(--vera-berry)]">{tenge(estLoss)}</span></div>
               </div>
-              <div className="mt-auto pt-8 flex items-center gap-3"><Button variant="soft" disabled={busy} onClick={() => setStep("extract")}>Edit</Button><Button full disabled={busy} onClick={finish}>{busy ? "Sending…" : "Submit for approval"}</Button></div>
+              <div className="mt-auto pt-8 flex items-center gap-3"><Button variant="soft" disabled={busy} onClick={() => setStep("extract")}>{T("editStep")}</Button><Button full disabled={busy} onClick={finish}>{busy ? T("sending") : T("submitForApproval")}</Button></div>
             </motion.div>
           )}
 
           {step === "done" && (
             <motion.div key="done" {...fade} className="flex-1 flex flex-col items-center justify-center text-center">
               <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 14 }} className="grid place-items-center size-28 rounded-full bg-[var(--vera-mint)] text-white"><Check size={54} /></motion.div>
-              <h1 className="mt-7 text-[28px]">Sent to manager</h1>
-              <p className="mt-2 text-[15px] text-[var(--vera-brown-gray)] max-w-[30ch]">It's in the review queue. You'll see the decision in your requests.</p>
+              <h1 className="mt-7 text-[28px]">{T("sentToManager")}</h1>
+              <p className="mt-2 text-[15px] text-[var(--vera-brown-gray)] max-w-[30ch]">{T("sentToManagerSub")}</p>
             </motion.div>
           )}
         </AnimatePresence>

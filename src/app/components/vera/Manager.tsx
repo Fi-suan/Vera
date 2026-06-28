@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ChartLineUp, Tray, Table as TableIcon, UsersThree, ArrowsClockwise,
-  MagnifyingGlass, Check, X, Sparkle, CaretRight, TrendUp, Clock,
+  MagnifyingGlass, Check, X, Sparkle, TrendUp, Clock,
   CheckCircle, Warning, ForkKnife,
 } from "./icons";
 import { Shell, PageHead, type NavItem } from "./Shell";
@@ -27,7 +27,7 @@ const fade = {
   initial: { opacity: 0, y: 14 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -10 },
-  transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
+  transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
 };
 
 /* Map the backend statusTone (server/src/serializer.ts) onto the colour keys
@@ -201,27 +201,6 @@ function Records({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
       </div>
 
-      <div className="hidden">
-        <div className="grid grid-cols-[1.4fr_1fr_1.1fr_0.8fr_1fr_0.9fr_36px] gap-3 px-4 pb-2 text-[12px] font-bold uppercase tracking-wide text-[var(--vera-rose-gray)]">
-          <span>Product</span><span>Employee</span><span>Point</span><span>Status</span><span>Iiko</span><span className="text-right">Loss</span><span />
-        </div>
-        <div className="divide-y divide-[#f0d8cf]">
-          {rows.map((r, i) => {
-            const e = empById(r.employeeId);
-            return (
-              <motion.button key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} onClick={() => onOpen(r.id)} className="grid w-full grid-cols-[1.4fr_1fr_1.1fr_0.8fr_1fr_0.9fr_36px] items-center gap-3 px-4 py-3 text-left rounded-2xl hover:bg-white/70 transition-colors">
-                <span className="flex items-center gap-2.5 min-w-0"><span className="size-8 rounded-xl grid place-items-center shrink-0" style={{ background: `${CATEGORY_COLOR[r.category]}22`, color: CATEGORY_COLOR[r.category] }}><ForkKnife size={16} /></span><span className="truncate"><span className="font-semibold">{r.product}</span> <span className="text-[var(--vera-rose-gray)]">· {r.qty}</span></span></span>
-                <span className="flex items-center gap-2 min-w-0"><Avatar name={e.name} hue={e.hue} size={26} /><span className="text-[13px] truncate">{e.name.split(" ")[0]}</span></span>
-                <span className="text-[14px]">{r.point}</span>
-                <span>{(() => { const s = statusView(r); return <StatusLabel tone={s.tone} pulse={s.pulse}>{s.label}</StatusLabel>; })()}</span>
-                <span><StatusLabel tone={r.sync} pulse={r.sync === "syncing"}>{r.ui?.sync.label ?? (r.sync === "idle" ? "—" : r.sync)}</StatusLabel></span>
-                <span className="text-right font-mono font-bold text-[var(--vera-cocoa)] text-[14px]">{tenge(r.loss)}</span>
-                <CaretRight size={16} className="text-[var(--vera-rose-gray)]" />
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
       <div className="mt-5 divide-y divide-[#f0d8cf]">
         {rows.map((r) => {
           const e = empById(r.employeeId);

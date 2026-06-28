@@ -112,6 +112,69 @@ const D: Dict = {
   iikoSub: ["Одобренные списания уходят в Iiko.", "Мақұлданғандар Iiko-ға кетеді.", "Approved write-offs flow into Iiko."],
   approveSync: ["Одобрить", "Мақұлдау", "Approve & sync"],
   rejectAction: ["Отклонить", "Қабылдамау", "Reject"],
+  // dashboard leftovers
+  ofCapPct: ["от лимита", "лимиттен", "of cap"],
+  per: ["за", "бір", "per"],
+  syncingShort: ["Синхронизация…", "Синхрондау…", "Syncing…"],
+  syncedShort: ["Синхронизировано", "Синхрондалды", "Synced"],
+  syncFailedShort: ["Ошибка синхр.", "Синхр. қатесі", "Sync failed"],
+  // shared field labels
+  fieldProduct: ["Товар", "Тауар", "Product"],
+  fieldQuantity: ["Количество", "Саны", "Quantity"],
+  fieldTradePoint: ["Точка", "Нүкте", "Trade point"],
+  fieldReason: ["Причина", "Себеп", "Reason"],
+  fieldDeduction: ["Удержание", "Ұстау", "Deduction"],
+  withDeduction: ["С удержанием", "Ұстаумен", "With deduction"],
+  withoutDeduction: ["Без удержания", "Ұстаусыз", "Without deduction"],
+  estLoss: ["Оценка потерь", "Болжамды шығын", "Est. loss"],
+  // capture flow — record
+  listening: ["Слушаю…", "Тыңдап тұрмын…", "Listening…"],
+  tellVera: ["Расскажите VERA, что случилось", "VERA-ға не болғанын айтыңыз", "Tell VERA what happened"],
+  tellVeraSub: ["Товар, количество, точка и тип списания.", "Тауар, саны, нүкте және есептен шығару түрі.", "Product, quantity, trade point, and deduction type."],
+  recordingTapFinish: ["Запись… нажмите микрофон, чтобы закончить.", "Жазу… аяқтау үшін микрофонды басыңыз.", "Recording… tap the mic to finish."],
+  transcribingShort: ["Распознаю…", "Тануда…", "Transcribing…"],
+  tapMicSpeak: ["Нажмите микрофон и говорите свободно.", "Микрофонды басып, еркін сөйлеңіз.", "Tap the mic and speak naturally."],
+  finishRecording: ["Завершить запись", "Жазуды аяқтау", "Finish recording"],
+  typeInstead: ["Ввести вручную", "Қолмен енгізу", "Type instead"],
+  // capture flow — transcript
+  yourWords: ["Ваши слова", "Сіздің сөздеріңіз", "Your words"],
+  reviewTranscript: ["Проверьте текст", "Мәтінді тексеріңіз", "Review the transcript"],
+  reviewTranscriptSub: ["Отредактируйте при необходимости, затем VERA структурирует.", "Қажет болса өңдеңіз, содан кейін VERA құрылымдайды.", "Edit if needed, then let VERA structure it."],
+  transcriptHint: ["VERA могла ослышаться — поправьте товар, число или причину, если что-то не так.", "VERA қате естуі мүмкін — тауарды, санды немесе себепті түзетіңіз.", "VERA can mishear — fix the product, number or reason if anything's off."],
+  transcriptPh: [
+    "напр. Списать 3 котлеты, упали на пол в Aktau Mall, без удержания.",
+    "мыс. 3 котлетаны есептен шығару, Aktau Mall-да еденге түсті, ұстаусыз.",
+    "e.g. Write off 3 beef cutlets, fell on the floor at Aktau Mall, without deduction.",
+  ],
+  structuring: ["Структурирую…", "Құрылымдауда…", "Structuring…"],
+  structureWithVera: ["Структурировать с VERA", "VERA-мен құрылымдау", "Structure with VERA"],
+  // capture flow — extract
+  veraStructured: ["VERA структурировала заявку", "VERA өтінімді құрылымдады", "VERA structured your request"],
+  confident: ["уверенность", "сенімділік", "confident"],
+  checkDetails: ["Проверьте детали", "Деректерді тексеріңіз", "Check the details"],
+  cleanedComment: ["Обработанный комментарий", "Өңделген түсініктеме", "Cleaned comment"],
+  addMissingDetails: ["Добавить детали", "Деректерді қосу", "Add missing details"],
+  looksCorrect: ["Всё верно", "Бәрі дұрыс", "Looks correct"],
+  // capture flow — missing
+  fillMissing: ["Заполните недостающее", "Жетпегенін толтырыңыз", "Fill the missing details"],
+  fillMissingSub: ["Нажмите, чтобы заполнить — быстрее, чем печатать.", "Толтыру үшін басыңыз — теруден жылдам.", "Tap to fill — faster than typing."],
+  // capture flow — photo
+  attachPhoto: ["Прикрепите фото-подтверждение", "Фото-дәлел тіркеңіз", "Attach photo proof"],
+  attachPhotoSub: ["Сделайте или загрузите снимок, где чётко видно товар и повреждение.", "Тауар мен зақымды анық көрсететін суретті түсіріңіз немесе жүктеңіз.", "Take or upload a shot that clearly shows the product and damage."],
+  tapTakeUpload: ["Нажмите, чтобы снять или загрузить", "Түсіру немесе жүктеу үшін басыңыз", "Tap to take or upload"],
+  retake: ["Переснять", "Қайта түсіру", "Retake"],
+  // capture flow — confirm / done
+  readyToSend: ["Готово к отправке", "Жіберуге дайын", "Ready to send"],
+  editStep: ["Изменить", "Өңдеу", "Edit"],
+  submitForApproval: ["Отправить на проверку", "Тексеруге жіберу", "Submit for approval"],
+  sending: ["Отправка…", "Жіберуде…", "Sending…"],
+  sentToManager: ["Отправлено менеджеру", "Менеджерге жіберілді", "Sent to manager"],
+  sentToManagerSub: ["Заявка в очереди проверки. Решение появится в ваших заявках.", "Өтінім тексеру кезегінде. Шешім өтінімдеріңізде көрінеді.", "It's in the review queue. You'll see the decision in your requests."],
+  // capture flow — errors
+  micUnavailable: ["Микрофон недоступен — введите вручную, что случилось.", "Микрофон қолжетімсіз — не болғанын қолмен енгізіңіз.", "Microphone unavailable — type what happened instead."],
+  transcribeFailed: ["Не удалось распознать — введите или отредактируйте текст ниже.", "Тану мүмкін болмады — төмендегі мәтінді енгізіңіз немесе өңдеңіз.", "Couldn't transcribe — type or edit the text below."],
+  extractionFailed: ["Не удалось структурировать", "Құрылымдау мүмкін болмады", "Extraction failed"],
+  couldNotSubmit: ["Не удалось отправить", "Жіберу мүмкін болмады", "Could not submit"],
 };
 
 let current: Lang = ((): Lang => {
